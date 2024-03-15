@@ -1,7 +1,7 @@
 const mongoose = require("mongoose")
 require('dotenv').config();
 // mongoose.connect("mongodb://localhost:27017/MyShop")
-const conn = await mongoose.connect(process.env.MONGO_URi)
+const conn = await mongoose.connect(process.env.MONGO_URL)
 
 .then(()=>{
     console.log(`MongoDb Conntected: ${conn.connection.host}`);
