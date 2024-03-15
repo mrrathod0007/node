@@ -31,6 +31,7 @@ exports.register = async (req, res, next) => {
     } catch (error) {
         if (error.name === 'MongoServerError' && error.code === 11000) {
             // If the error is due to duplicate email (MongoError code 11000)
+            console.log("error",error.name);
             return res.status(400).json({ status: false, msg: "This UserName or Mobile is already in use." });
         } else {
             // For other errors, return a generic error message

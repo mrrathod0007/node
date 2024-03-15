@@ -3,7 +3,7 @@ const db = require("./config/db");
 require('dotenv').config();
 
 const {  UserModel, UserAddTable,Menu, Invoice } = require("../src/model/user_model");
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 2000;
 
 
 
