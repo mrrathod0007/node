@@ -1,15 +1,13 @@
 const mongoose = require("mongoose")
 
 
-// mongoose.connect("mongodb://127.0.0.1:27017/MyShop")
-const conn =  mongoose.connect(process.env.MONGO_URI)
+mongoose.connect("mongodb+srv://mrrathod0007:Mahi9036%40yahoo.com@cluster0.t2hxubb.mongodb.net/")
 
 .then(()=>{
-    console.log("MongoDb Conntected")
+    console.log("MongoDb Conntected with db")
 })
-.catch(()=>{
-    console.log(`failed to connect`)
-    console.log("failed to connect")
+.catch((error)=>{
+    console.log(`failed to connect with db ${error}`)
 })
 
 const LoginSchema = new mongoose.Schema({
