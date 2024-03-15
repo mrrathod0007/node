@@ -31,7 +31,6 @@ exports.register = async (req, res, next) => {
     } catch (error) {
         if (error.name === 'MongoServerError' && error.code === 11000) {
             // If the error is due to duplicate email (MongoError code 11000)
-            console.log("error",error.name);
             return res.status(400).json({ status: false, msg: "This UserName or Mobile is already in use." });
         } else {
             // For other errors, return a generic error message
@@ -293,8 +292,7 @@ exports.forgotPassword = async (req, res, next) => {
 }
 
 exports.resetPassword = async (req, res, next) => {
-    const isValidToken = await UserServices.checkToken(req.token);
-    if (isValidToken) {
+
         try {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
@@ -320,14 +318,7 @@ exports.resetPassword = async (req, res, next) => {
         } catch (error) {
 
         }
-    } else {
-        res.status(200).json({
-            status: false,
-            msg: "Your Subscription Expire Please Contect Admin",
-            response: null
-        });
-    }
-}
+    } 
 exports.addCustomer = async (req, res, next) => {
     const isValidToken = await UserServices.checkToken(req.token);
     if (isValidToken) {
