@@ -1,11 +1,11 @@
 const mongoose = require("mongoose")
 
 
-// mongoose.connect("mongodb://127.0.0.1:27017/MyShop")
-const conn = await mongoose.connect(process.env.MONGO_URL)
+mongoose.connect("mongodb://127.0.0.1:27017/MyShop")
+// const conn = await mongoose.connect(process.env.MONGO_URL)
 
 .then(()=>{
-    console.log(`MongoDb Conntected: ${conn.connection.host}`)
+    console.log(`MongoDb Conntected`)
 })
 .catch(()=>{
     console.log("failed to connect")
