@@ -46,8 +46,32 @@ class UserServices {
             if (user) {
                 if (user.token) {
                     const isValidToken = await UserServices.checkToken(user.token);
+                    console.log('==user.token==', user.token);
                     if (isValidToken) {
-                        const decodedToken = jwt.verify(user.token, secretKey);
+                        let newToken;
+                        let decodedToken;
+                        jwt.verify(user.token, secretKey, async (error, authData) => {
+                            console.log('==error==', error);
+                            if (error !== null && error.name === "TokenExpiredError") {
+                                console.log('==error==', error.name);
+                                if(user.nextExpiry > 0){
+                                    const expiry = (user.nextExpiry) * (24 * 60 * 60);
+                                    console.log('==next==',user.nextExpiry);
+                                 newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
+                                 user.token = newToken;
+                                 user.lastExpiry = user.nextExpiry;
+                                 user.nextExpiry = 0;
+                                 const newUser = await user.save();
+                                //  newToken = newToken;
+                            }
+                
+                            } else {
+                                decodedToken = jwt.verify(user.token, secretKey);
+                             
+                            }});
+                           
+                        // const decodedToken = jwt.verify(user.token, secretKey);
+                        console.log('==decodedToken==', decodedToken);
                         const logintime = user.created;
                         console.log('==logintime==', logintime / 1000);
                         const currentTime = Math.floor(Date.now() / 1000);
@@ -63,13 +87,15 @@ class UserServices {
                         } else {
                             if(user.nextExpiry > 0){
                                 const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                             const newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
+                                console.log('==next==',user.nextExpiry);
+                             newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
                              user.token = newToken;
                              user.lastExpiry = user.nextExpiry;
                              user.nextExpiry = 0;
                              const newUser = await user.save();
                              return newToken;
                             }else{
+                                console.log('==next==',user.nextExpiry);
                                 throw new Error("Session expired");
                             }
                             
