@@ -223,7 +223,7 @@ exports.getTable = async (req, res, next) => {
                     const keyValue = await authData._id;
                     const { tableId } = await req.body;
                     if (keyValue !== null) {
-                        console.log('======body======', keyValue);
+                        // console.log('======body======', keyValue);
                         const getTable = await UserAddTable.find({ keyValue: `${keyValue}` });
 
                         if (getTable.length !== 0) {
@@ -508,7 +508,7 @@ exports.getMenu = async (req, res, next) => {
                             // const tableId = menu.id;
                             // const successRes = await UserServices.addMenu(`${keyValue}`, menu);
                             // const newMenu = await Menu.findOne({ keyValue: keyValue });
-                            console.log("=====menuList====", list);
+                            // console.log("=====menuList====", list);
                             res.json({ status: true, msg: "Menu Retrieve Successful", response: { menuList } });
                         }
 
@@ -708,20 +708,22 @@ exports.addInvoice = async (req, res, next) => {
                     };
 
 
-                    // const index = abc.length;
+                    const index = abc.length;
                     // console.log('===abc===',abc[(index-1)]);
-                    // const forPdfInvoice = {
-                    //     no: existingInvoice.no,
-                    //     date: existingInvoice.date,
-                    //     table: abc[(index-1)]
-                    // }
-                    // const invoicePdf = await UserServices.craetePDF(forPdfInvoice);
+                    const forPdfInvoice = {
+                        no: existingInvoice.no,
+                        date: existingInvoice.date,
+                        table: abc[(index-1)]
+                    }
+                    const invoicePdf = await UserServices.craetePDF(forPdfInvoice,req.headers.host);
                     const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
+                    console.log('===invoicePdf===',invoicePdf);
                     if (deletedOrder) {
                         console.log("==tableOrder Deleted==");
                     } else {
                         console.log("==tableOrder not found==");
                     }
+                   
                     res.status(200).json({ status: true, msg: "New table added to existing invoice", response: responseInvoice });
                 } else {
                     try {
@@ -887,10 +889,12 @@ exports.getInvoice = async (req, res, next) => {
         });
     }
 };
-exports.getPdf = async (req, res, next) => {
-    const pdfPath = path.join(__dirname, '..', 'documents', '01.01.pdf');
+exports.getPdf = async (invoicePdf,req, res, next) => {
+    const documentsFolderPath = path.join(__dirname, '..', 'documents');
+    console.log("==", documentsFolderPath)
+    const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
     console.log("==", pdfPath)
-    res.sendFile(pdfPath);
+    res.sendFile(invoicePdf);
 
 };
 exports.keepOrder = async (req, res, next) => {

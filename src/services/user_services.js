@@ -54,22 +54,23 @@ class UserServices {
                             console.log('==error==', error);
                             if (error !== null && error.name === "TokenExpiredError") {
                                 console.log('==error==', error.name);
-                                if(user.nextExpiry > 0){
+                                if (user.nextExpiry > 0) {
                                     const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                                    console.log('==next==',user.nextExpiry);
-                                 newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
-                                 user.token = newToken;
-                                 user.lastExpiry = user.nextExpiry;
-                                 user.nextExpiry = 0;
-                                 const newUser = await user.save();
-                                //  newToken = newToken;
-                            }
-                
+                                    console.log('==next==', user.nextExpiry);
+                                    newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
+                                    user.token = newToken;
+                                    user.lastExpiry = user.nextExpiry;
+                                    user.nextExpiry = 0;
+                                    const newUser = await user.save();
+                                    //  newToken = newToken;
+                                }
+
                             } else {
                                 decodedToken = jwt.verify(user.token, secretKey);
-                             
-                            }});
-                           
+
+                            }
+                        });
+
                         // const decodedToken = jwt.verify(user.token, secretKey);
                         console.log('==decodedToken==', decodedToken);
                         const logintime = user.created;
@@ -85,20 +86,20 @@ class UserServices {
                         if (decodedToken.exp > currentTime) {
                             return user.token;
                         } else {
-                            if(user.nextExpiry > 0){
+                            if (user.nextExpiry > 0) {
                                 const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                                console.log('==next==',user.nextExpiry);
-                             newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
-                             user.token = newToken;
-                             user.lastExpiry = user.nextExpiry;
-                             user.nextExpiry = 0;
-                             const newUser = await user.save();
-                             return newToken;
-                            }else{
-                                console.log('==next==',user.nextExpiry);
+                                console.log('==next==', user.nextExpiry);
+                                newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
+                                user.token = newToken;
+                                user.lastExpiry = user.nextExpiry;
+                                user.nextExpiry = 0;
+                                const newUser = await user.save();
+                                return newToken;
+                            } else {
+                                console.log('==next==', user.nextExpiry);
                                 throw new Error("Session expired");
                             }
-                            
+
                         }
                     }
                 }
@@ -127,7 +128,7 @@ class UserServices {
                 if (!loginUser) {
                     const lastExpiry = 1;
                     const nextExpiry = 0;
-                    const newLogin = await Login.create({ keyValue, mobileOrPassword, password, token,lastExpiry,nextExpiry});
+                    const newLogin = await Login.create({ keyValue, mobileOrPassword, password, token, lastExpiry, nextExpiry });
                 }
             }
             return user;
@@ -241,11 +242,22 @@ class UserServices {
     }
 
 
-    static async craetePDF(invoice) {
+    static async craetePDF(invoice,baseUrl) {
         return new Promise((resolve, reject) => {
             let doc = new PDFDocument({ size: "A4", margin: 50 });
+            const currentDate = new Date();
+            const year = currentDate.getFullYear();
+            const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+            const day = currentDate.getDate().toString().padStart(2, '0');
+            const hours = currentDate.getHours().toString().padStart(2, '0');
+            const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+            const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+            // Construct the date and time strings
+            const currentDateStr = `${day}${month}${year}`;
+            const currentTimeStr = `${hours}${minutes}${seconds}`;
             const documentsFolderPath = path.join(__dirname, '..', 'documents');
-            const pdfPath = path.join(documentsFolderPath, `01.pdf`);
+            const pdfPath = path.join(documentsFolderPath, `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}.pdf`);
             if (!fs.existsSync(documentsFolderPath)) {
                 try {
                     fs.mkdirSync(documentsFolderPath);
@@ -263,9 +275,10 @@ class UserServices {
             doc.end();
             doc.pipe(fs.createWriteStream(pdfPath));
             console.log('====pdf====', pdfPath);
+            const abc = path.join(documentsFolderPath, `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}.pdf`);
             stream.on('finish', () => {
-                const pdfUrl = `http://192.168.1.7:3000/documents/01.pdf`;
-                console.log("==URL==", pdfUrl,)
+                const pdfUrl = `${baseUrl}/documents/${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}.pdf`;
+                console.log("==URL==", abc,)
                 resolve(pdfUrl); // Resolve with the file path or name
             });
         });
