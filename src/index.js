@@ -1,5 +1,5 @@
-const app = require("app");
-const db = require("config/db");
+const app = require("./app");
+const db = require("./config/db");
 require('dotenv').config();
 
 const {  UserModel, UserAddTable,Menu, Invoice } = require("../src/model/user_model");
