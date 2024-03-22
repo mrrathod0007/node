@@ -367,7 +367,7 @@ class UserServices {
             const qty = invoice.table.qty[i];
             const totalPrice = ((invoice.table.qty[i]) * (invoice.table.price[i]));
             totalInvoicePrice += totalPrice;
-
+            
             const position = invoiceTableTop + (i + 1) * 30;
             this.generateTableRow(
                 doc,
@@ -395,13 +395,18 @@ class UserServices {
         );
 
         const cgstPosition = subtotalPosition + 20;
+        
+        
         let gst;
-        if(invoice.table.gst > 0){
-            gst = (invoice.table.gst / 2)
+        if(invoice.table.gst[0] > 0.00){
+            gst = (totalInvoicePrice * 9 / 100)
+            console.log("==invoice.table.gst==",invoice.table.gst);
         }
             else{
-                gst = 0;
+                gst = 0.00;
+                console.log("==gst==",gst);
             }
+            
         this.generateTableRow(
             doc,
             cgstPosition,
@@ -440,7 +445,7 @@ class UserServices {
         doc
             .fontSize(10)
             .text(
-                "We are always here to serve you ( મુલાકાત બદલ આભાર )",
+                "We are always here to serve you, Thank You!",
                 50,
                 780,
                 { align: "center", width: 500 }
