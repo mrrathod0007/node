@@ -266,7 +266,6 @@ class UserServices {
                 }
             }
             const stream = doc.pipe(fs.createWriteStream(pdfPath));
-            console.log('==sjhs==', pdfPath)
             this.generateHeader(doc);
             this.generateCustomerInformation(doc, invoice);
             this.generateInvoiceTable(doc, invoice);
@@ -274,46 +273,8 @@ class UserServices {
 
             doc.end();
             doc.pipe(fs.createWriteStream(pdfPath));
-            console.log('====pdf====', pdfPath);
-           
-            const abc = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
             stream.on('finish', () => {
-                const pdfContent = fs.readFileSync(pdfPath);
-                const base64String = Buffer.from(pdfContent).toString('base64');
-                const addPdfData = AddPdf({
-                    keyValue: keyValue,
-                    invoiceNo: `${invoiceDateandTime}`,
-                    pdfData: base64String
-                    
-                });
-                console.log("yaha tak");
-                 AddPdf.create({
-                    keyValue: keyValue,
-                    invoiceNo: `${invoiceDateandTime}`,
-                    pdfData: base64String
-                    
-                });
-                // addPdfData.save(function(err, user) {
-                //     if (err) {
-                //         console.error("Error saving user:", err);
-                //         return;
-                //     }
-                //     console.log("User saved successfully:", user);
-                // });
-                const findPdf =  AddPdf.findOne({ 
-                    keyValue: keyValue, 
-                    invoiceNo: `${invoiceDateandTime}` 
-                })
-                
-                // if ( !findPdf.pdfData) {
-                //     console.log("==error==");
-                // }
-                
-                const pdfDatafromDb = findPdf;
-
-                console.log("==pdfDatafromDb==",pdfDatafromDb.keyValue);
                 const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
-                console.log("==URL==", abc,)
                 resolve(pdfUrl); // Resolve with the file path or name
             });
         });
@@ -434,14 +395,21 @@ class UserServices {
         );
 
         const cgstPosition = subtotalPosition + 20;
+        let gst;
+        if(invoice.table.gst > 0){
+            gst = (invoice.table.gst / 2)
+        }
+            else{
+                gst = 0;
+            }
         this.generateTableRow(
             doc,
             cgstPosition,
             "",
             "",
-            "CGST (9%)",
+            "if applicable(CGST (9%))",
             "",
-            ((totalInvoicePrice * 9 / 100))
+            ((gst))
         );
         const sgstPosition = cgstPosition + 20;
         this.generateTableRow(
@@ -449,11 +417,11 @@ class UserServices {
             sgstPosition,
             "",
             "",
-            "SGST (9%)",
+            "if applicable(SGST (9%))",
             "",
-            ((totalInvoicePrice * 9 / 100))
+            ((gst))
         );
-        let totalBill = ((totalInvoicePrice) + (totalInvoicePrice * 9 / 100) + (totalInvoicePrice * 9 / 100));
+        let totalBill = ((totalInvoicePrice) + (gst) + (gst));
         const duePosition = sgstPosition + 25;
         doc.font("Helvetica-Bold");
         this.generateTableRow(
