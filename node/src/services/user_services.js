@@ -312,7 +312,7 @@ class UserServices {
                 const pdfDatafromDb = findPdf;
 
                 console.log("==pdfDatafromDb==",pdfDatafromDb.keyValue);
-                const pdfUrl = `${baseUrl}/documents/${invoiceDateandTime}.pdf`;
+                const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
                 console.log("==URL==", abc,)
                 resolve(pdfUrl); // Resolve with the file path or name
             });
