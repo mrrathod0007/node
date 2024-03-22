@@ -1,5 +1,5 @@
 const UserServices = require("../services/user_services");
-const { UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder } = require("../model/user_model");
+const { UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf } = require("../model/user_model");
 const jwt = require("jsonwebtoken");
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
@@ -337,8 +337,6 @@ exports.addCustomer = async (req, res, next) => {
                 if (keyValue !== null) {
                     let table = await UserServices.tableCheck(keyValue);
                     const tableUpdate = await table.customerUpdate(keyValue, req.body.tableId);
-                    console.log('======tableUpdate======', tableUpdate);
-                    console.log('jlasjd', table);
 
 
 
@@ -715,7 +713,7 @@ exports.addInvoice = async (req, res, next) => {
                         date: existingInvoice.date,
                         table: abc[(index-1)]
                     }
-                    const invoicePdf = await UserServices.craetePDF(forPdfInvoice,req.headers.host);
+                    const invoicePdf = await UserServices.craetePDF(keyValue,forPdfInvoice,req.headers.host);
                     const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
                     // console.log('===invoicePdf===',invoicePdf);
                     if (deletedOrder) {
@@ -924,12 +922,10 @@ exports.keepOrder = async (req, res, next) => {
                             existingOrder.menuList = newMenuList.menuList
 
                         const saveOrder = await existingOrder.save();
-                        console.log("==saveOrder==", saveOrder);
                         res.status(200).json({ status: true, msg: "Update your Order", response: null });
                     }
                     else {
                         const newOrder = await UserServices.keepOder(keyValue, tableId, menuList);
-                        console.log("==newOrder==", newOrder);
                         res.status(200).json({ status: true, msg: "save your Order", response: null });
                     }
                 } catch (error) {

@@ -1,4 +1,4 @@
-const { UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder } = require("../model/user_model");
+const {  UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf  } = require("../model/user_model");
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -139,7 +139,6 @@ class UserServices {
     static async checkToken(token) {
         try {
             const user = await Login.findOne({ token: token });
-            console.log("==djahskd==", user);
             if (!user) {
                 return false;
             } else {
@@ -242,7 +241,7 @@ class UserServices {
     }
 
 
-    static async craetePDF(invoice,baseUrl) {
+    static async craetePDF(keyValue,invoice,baseUrl) {
         return new Promise((resolve, reject) => {
             let doc = new PDFDocument({ size: "A4", margin: 50 });
             const currentDate = new Date();
@@ -257,7 +256,8 @@ class UserServices {
             const currentDateStr = `${day}${month}${year}`;
             const currentTimeStr = `${hours}${minutes}${seconds}`;
             const documentsFolderPath = path.join(__dirname, '..', 'documents');
-            const pdfPath = path.join(documentsFolderPath, `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}.pdf`);
+            const invoiceDateandTime= `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}`;
+            const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
             if (!fs.existsSync(documentsFolderPath)) {
                 try {
                     fs.mkdirSync(documentsFolderPath);
@@ -275,9 +275,44 @@ class UserServices {
             doc.end();
             doc.pipe(fs.createWriteStream(pdfPath));
             console.log('====pdf====', pdfPath);
-            const abc = path.join(documentsFolderPath, `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}.pdf`);
+           
+            const abc = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
             stream.on('finish', () => {
-                const pdfUrl = `${baseUrl}/documents/${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}.pdf`;
+                const pdfContent = fs.readFileSync(pdfPath);
+                const base64String = Buffer.from(pdfContent).toString('base64');
+                const addPdfData = AddPdf({
+                    keyValue: keyValue,
+                    invoiceNo: `${invoiceDateandTime}`,
+                    pdfData: base64String
+                    
+                });
+                console.log("yaha tak");
+                 AddPdf.create({
+                    keyValue: keyValue,
+                    invoiceNo: `${invoiceDateandTime}`,
+                    pdfData: base64String
+                    
+                });
+                // addPdfData.save(function(err, user) {
+                //     if (err) {
+                //         console.error("Error saving user:", err);
+                //         return;
+                //     }
+                //     console.log("User saved successfully:", user);
+                // });
+                const findPdf =  AddPdf.findOne({ 
+                    keyValue: keyValue, 
+                    invoiceNo: `${invoiceDateandTime}` 
+                })
+                
+                // if ( !findPdf.pdfData) {
+                //     console.log("==error==");
+                // }
+                
+                const pdfDatafromDb = findPdf;
+
+                console.log("==pdfDatafromDb==",pdfDatafromDb.keyValue);
+                const pdfUrl = `${baseUrl}/documents/${invoiceDateandTime}.pdf`;
                 console.log("==URL==", abc,)
                 resolve(pdfUrl); // Resolve with the file path or name
             });
@@ -286,7 +321,7 @@ class UserServices {
 
     static async generateHeader(doc) {
         doc
-            .image("icon.png", 50, 45, { width: 50 })
+            .image(("node/icon.png"), 50, 45, { width: 50 })
             .fillColor("#444444")
             .fontSize(20)
             .text("MY SHOP", 110, 57)

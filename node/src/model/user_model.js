@@ -199,6 +199,21 @@ const keepOrderSchema = new Schema({
 
 });
 
+const pdfSchema = new Schema({
+    keyValue: {
+        type: String,
+        required: true
+    },
+    invoiceNo: {
+        type: String,
+        required: true
+    },
+    pdfData: {
+        type: String
+    }
+
+});
+
 userSchema.pre('save', async function () {
     try {
         var user = this;
@@ -269,7 +284,6 @@ userSchema.methods.comparePassword = async function (userPassword) {
 
 tableSchema.methods.compareTable = async function (keyValue, tableId) {
     const tables = await UserAddTable.find();
-    console.log('===tables===', tables);
 
 
     try {
@@ -288,7 +302,6 @@ tableSchema.methods.compareTable = async function (keyValue, tableId) {
 };
 tableSchema.methods.customerUpdate = async function (keyValue, tableId) {
     const tables = await UserAddTable.find();
-    console.log('===tables===', tables);
 
 
     try {
@@ -362,6 +375,8 @@ const Login = mongoose.model('Login', loginSchema);
 const Menu = mongoose.model('Menu', menuSchema);
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 const KeepOrder = mongoose.model('KeepOrder', keepOrderSchema);
+const AddPdf = mongoose.model('AddPdf', pdfSchema);
 
-module.exports = { UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder };
+
+module.exports = { UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf };
 
