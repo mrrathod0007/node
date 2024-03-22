@@ -713,9 +713,9 @@ exports.addInvoice = async (req, res, next) => {
                         date: existingInvoice.date,
                         table: abc[(index-1)]
                     }
-                    // const invoicePdf = await UserServices.craetePDF(keyValue,forPdfInvoice,req.headers.host);
+                    const invoicePdf = await UserServices.craetePDF(keyValue,forPdfInvoice,req.headers.host);
                     const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
-                    // console.log('===invoicePdf===',invoicePdf);
+                    console.log('===invoicePdf===',invoicePdf);
                     if (deletedOrder) {
                         console.log("==tableOrder Deleted==");
                     } else {
