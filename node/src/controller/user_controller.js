@@ -722,7 +722,7 @@ exports.addInvoice = async (req, res, next) => {
                         console.log("==tableOrder not found==");
                     }
                    
-                    res.status(200).json({ status: true, msg: "New table added to existing invoice", response: responseInvoice });
+                    res.status(200).json({ status: true, msg: "New table added to existing invoice", response: {invoicePdf} });
                 } else {
                     try {
                         const latestInvoice = await Invoice.findOne().sort({ no: -1 });
@@ -761,14 +761,14 @@ exports.addInvoice = async (req, res, next) => {
                             table: responseTable
 
                         };
-                        // const invoicePdf = await UserServices.craetePDF(responseInvoice);
+                        const invoicePdf = await UserServices.craetePDF(keyValue,forPdfInvoice,req.headers.host);
                         const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
                         if (deletedOrder) {
                             console.log("==tableOrder Deleted==");
                         } else {
                             console.log("==tableOrder not found==");
                         }
-                        res.status(200).json({ status: true, msg: "Invoice added", response: responseInvoice });
+                        res.status(200).json({ status: true, msg: "Invoice added", response: {invoicePdf} });
                     } catch (error) {
                         console.error("Error adding invoice:", error);
                         res.status(500).json({ status: false, msg: "Internal server error" });
