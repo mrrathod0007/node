@@ -191,7 +191,7 @@ exports.addBranch = async (req, res, next) => {
                     const { branches } = req.body;
                     const branchesRes = await AdminBranchesModel.findOne({ keyValue: keyValue });
                     if (branchesRes) {
-                        console.log("==log==",branchesRes);
+                        console.log("==log==", branchesRes);
                         return res.status(200).json({ status: false, msg: "Branch added", response: branchesRes });
                     } else {
                         return res.status(400).json({ status: false, msg: "Not found", response: null });
@@ -513,10 +513,46 @@ exports.getTable = async (req, res, next) => {
 
                 } else {
                     const keyValue = await authData._id;
-                    const { tableId } = await req.body;
-                    if (keyValue !== null) {
-                        // console.log('======body======', keyValue);
-                        const getTable = await UserAddTable.find({ keyValue: `${keyValue}` });
+                    const { branchName } = await req.body;
+                    if (branchName && keyValue !== null) {
+                       let branchKeyValue;
+                        const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue,'branches.branchName': branchName });
+                        console.log("=====branchUser======", branchUser);
+                        let branches;
+                        if (branchUser && branchUser.branches && branchUser.branches.length > 0) {
+                            branches = branchUser.branches;
+                        }
+                        console.log("=====branches======", branches);
+                        if (!branches) {
+                            throw new Error("User does not exist");
+                        } else {
+                            let userName;
+                            let userPassword;
+                            let branchId;
+                            for (const value of branches) {
+                                if (value.branchName === branchName) {
+                                    userName = value.branchName;
+                                    userPassword = value.pass;
+                                    branchId = value._id;
+                                }
+                            }
+            
+                            if (userName) {
+                                console.log("=====userName======", userName);
+                                if (branchName === userName) {
+                                branchKeyValue = branchId;
+            
+                                    // res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: false } });
+                                }
+                                else {
+                                    res.status(400).json({ status: false, msg: "Branch did not Match", response: null });
+                                }
+                            }
+            
+                        }
+
+
+                        const getTable = await UserAddTable.find({ keyValue: `${branchKeyValue}` });
 
                         if (getTable.length !== 0) {
                             const filteredTable = getTable.map(table => ({
@@ -531,9 +567,29 @@ exports.getTable = async (req, res, next) => {
                         } else {
                             res.json({ status: false, msg: "No Table Found", response: null });
                         }
-
-
+                    }else{
+                        if (keyValue !== null) {
+                            // console.log('======body======', keyValue);
+                            const getTable = await UserAddTable.find({ keyValue: `${keyValue}` });
+    
+                            if (getTable.length !== 0) {
+                                const filteredTable = getTable.map(table => ({
+                                    tableId: table.tableId,
+                                    name: table.name,
+                                    mobile: table.mobile,
+                                    member: table.member,
+                                    isOccupied: table.isOccupied,
+                                    keepOrder: table.keepOrder
+                                }));
+                                res.json({ status: true, msg: "All Table Retrieve Successful", response: { table: filteredTable } });
+                            } else {
+                                res.json({ status: false, msg: "No Table Found", response: null });
+                            }
+    
+    
+                        }
                     }
+                   
 
 
 
@@ -1140,9 +1196,9 @@ exports.getInvoice = async (req, res, next) => {
 
                     if (invoice.length > 0) {
                         const date = invoice[0].date;
-                        const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host,startDate,endDate);
+                        const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
 
-                        console.log("==pdf==",invoicePdf);
+                        console.log("==pdf==", invoicePdf);
                         // const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
                         //  const pdf = await this.getPdf(invoicePdf);
                         // const pdfUrl = `http://192.168.1.7:3000/pdf`;
@@ -1174,9 +1230,9 @@ exports.getInvoice = async (req, res, next) => {
                             total
                         }))
                     }));
-                    const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host,startDate,endDate);
+                    const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
 
-                        console.log("==pdf==",invoicePdf);
+                    console.log("==pdf==", invoicePdf);
                     res.status(200).json({ status: true, msg: "Invoices Retrieve Successful for this Date Range", response: { invoicePdf } });
                 }
             }
