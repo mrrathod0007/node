@@ -4,7 +4,52 @@ const db = require('../config/db');
 
 
 const { Schema } = mongoose;
+const adminUserSchema = new Schema({
+    userName: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    mobile: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    password: {
+        type: String,
+        required: true
+    },
+    isAdmin:{
+        type:Boolean,
+        require: true
+    },
+    branch:{
+        type: Number,
+        require: true
+    },
 
+});
+
+const adminBranches = new Schema({
+    keyValue:{
+        type:String,
+        require: true
+    },
+    branches:[{
+        branchName:{
+            type: String,
+            require: true
+        },
+        userId:{
+            type: String,
+            require: true
+        },
+        pass:{
+            type: String,
+            require: true
+        }
+    }]
+});
 const userSchema = new Schema({
     userName: {
         type: String,
@@ -214,6 +259,17 @@ const pdfSchema = new Schema({
 
 });
 
+adminUserSchema.pre('save', async function () {
+    try {
+        var user = this;
+        const salt = await (bcrypt.genSalt(10));
+        const hashpass = await bcrypt.hash(user.password, salt);
+
+        user.password = hashpass;
+    } catch (error) {
+
+    }
+});
 userSchema.pre('save', async function () {
     try {
         var user = this;
@@ -271,7 +327,15 @@ invoiceSchema.pre('save', async function (next) {
 //     next();
 // });
 
+adminUserSchema.methods.compareAdminPassword = async function (userPassword) {
+    try {
+        const isMatch = await bcrypt.compare(userPassword, this.password);
+        return isMatch;
+    } catch (error) {
+        throw error;
 
+    }
+};
 userSchema.methods.comparePassword = async function (userPassword) {
     try {
         const isMatch = await bcrypt.compare(userPassword, this.password);
@@ -281,6 +345,7 @@ userSchema.methods.comparePassword = async function (userPassword) {
 
     }
 };
+
 
 tableSchema.methods.compareTable = async function (keyValue, tableId) {
     const tables = await UserAddTable.find();
@@ -369,6 +434,8 @@ invoiceSchema.methods.addItemsToInvoice = async function (newItems) {
     }
 };
 
+const AdminUserModel= new mongoose.model("AdminUserModel", adminUserSchema);
+const AdminBranchesModel= new mongoose.model("AdminBranchesModel", adminBranches);
 const UserModel = new mongoose.model("UserSinup", userSchema);
 const UserAddTable = new mongoose.model("addTable", tableSchema);
 const Login = mongoose.model('Login', loginSchema);
@@ -378,5 +445,5 @@ const KeepOrder = mongoose.model('KeepOrder', keepOrderSchema);
 const AddPdf = mongoose.model('AddPdf', pdfSchema);
 
 
-module.exports = { UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf };
+module.exports = { AdminUserModel,AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf };
 

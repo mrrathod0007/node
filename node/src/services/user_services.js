@@ -1,4 +1,4 @@
-const {  UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf  } = require("../model/user_model");
+const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf } = require("../model/user_model");
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -6,6 +6,29 @@ const jwt = require("jsonwebtoken");
 const handlebars = require('handlebars');
 
 class UserServices {
+    static async adminRegister(userName, mobile, password) {
+        try {
+            if (!userName || !mobile || !password) {
+                throw new Error('Mobile, password and branches are required.');
+            }
+            const isAdmin = true;
+            const branch = 3;
+            const newUser = await AdminUserModel.create({ userName, mobile, password, isAdmin, branch });
+            return newUser;
+        }
+        catch (err) {
+            throw err;
+        }
+    }
+    static async adminBranches(keyValue, branches) {
+        try {
+            const newUser = await AdminBranchesModel.create({ keyValue, branches });
+            return newUser;
+        }
+        catch (err) {
+            throw err;
+        }
+    }
     static async registerUser(userName, mobile, password) {
         try {
             if (!userName || !mobile || !password) {
@@ -17,6 +40,16 @@ class UserServices {
         }
         catch (err) {
             throw err;
+        }
+    }
+    static async checkAdminUser(mobileOrUserName) {
+        try {
+            // Search for a user by either userName or mobile number
+            return await AdminUserModel.findOne({
+                $or: [{ userName: mobileOrUserName }, { mobile: mobileOrUserName }]
+            });
+        } catch (error) {
+            throw error;
         }
     }
     static async checkuser(mobileOrPassword) {
@@ -38,7 +71,87 @@ class UserServices {
             throw error;
         }
     }
+    static async generateAdmintoken(tokenData, secretKey, jwt_expiry, id) {
+        try {
 
+            const user = await Login.findOne({ keyValue: id });
+
+            if (user) {
+                if (user.token) {
+                    const isValidToken = await UserServices.checkToken(user.token);
+                    console.log('==user.token==', user.token);
+                    if (isValidToken) {
+                        let newToken;
+                        let decodedToken;
+                        jwt.verify(user.token, secretKey, async (error, authData) => {
+                            console.log('==error==', error);
+                            if (error !== null && error.name === "TokenExpiredError") {
+                                console.log('==error==', error.name);
+                                if (user.nextExpiry > 0) {
+                                    const expiry = (user.nextExpiry) * (24 * 60 * 60);
+                                    console.log('==next==', user.nextExpiry);
+                                    newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
+                                    user.token = newToken;
+                                    user.lastExpiry = user.nextExpiry;
+                                    user.nextExpiry = 0;
+                                    const newUser = await user.save();
+                                    return newToken;
+                                    //  newToken = newToken;
+                                }
+
+                            } else {
+                                decodedToken = jwt.verify(user.token, secretKey);
+
+                            }
+                        });
+
+                        // const decodedToken = jwt.verify(user.token, secretKey);
+                        console.log('==decodedToken==', decodedToken);
+                        const logintime = user.created;
+                        console.log('==logintime==', logintime / 1000);
+                        const currentTime = Math.floor(Date.now() / 1000);
+                        console.log('==currentTime==', currentTime);
+                        const remainingTime = decodedToken.exp - currentTime;
+                        const remainingDays = Math.floor(remainingTime / (24 * 60 * 60));
+                        const remainingHours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
+                        const remainingMinutes = Math.floor((remainingTime % (60 * 60)) / 60);
+
+                        console.log(`Token expires in: ${remainingDays} days, ${remainingHours} hours, and ${remainingMinutes} minutes.`);
+                        if (decodedToken.exp > currentTime) {
+                            return user.token;
+                        } else {
+                            if (user.nextExpiry > 0) {
+                                const expiry = (user.nextExpiry) * (24 * 60 * 60);
+                                console.log('==next==', user.nextExpiry);
+                                newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
+                                user.token = newToken;
+                                user.lastExpiry = user.nextExpiry;
+                                user.nextExpiry = 0;
+                                const newUser = await user.save();
+                                return newToken;
+                            } else {
+                                console.log('==next==', user.nextExpiry);
+                                throw new Error("Session expired");
+                            }
+
+                        }
+                    }
+                }
+            } else {
+                return jwt.sign(tokenData, secretKey, { expiresIn: jwt_expiry });
+            }
+
+        } catch (error) {
+            throw error;
+        }
+
+        // try {
+        //     return jwt.sign(tokenData, secretKey, { expiresIn: jwt_expiry });
+        // } catch (error) {
+        //     throw error;
+
+        // }
+    }
     static async generatetoken(tokenData, secretKey, jwt_expiry, id) {
         try {
             const user = await Login.findOne({ keyValue: id });
@@ -62,6 +175,7 @@ class UserServices {
                                     user.lastExpiry = user.nextExpiry;
                                     user.nextExpiry = 0;
                                     const newUser = await user.save();
+                                    return newToken;
                                     //  newToken = newToken;
                                 }
 
@@ -117,6 +231,31 @@ class UserServices {
 
         // }
     }
+    static async adminUpdateToken(keyValue, token, mobileOrPassword, password) {
+        try {
+            const adminUser = await AdminUserModel.findOne({ _id: keyValue });
+            const branchUser = await AdminBranchesModel.findOne({ 'branches.userId': mobileOrPassword });
+            if (!adminUser && !branchUser) {
+                throw new Error("User not found");
+            } else {
+                const loginUser = await Login.findOne({ keyValue: keyValue });
+                console.log('==Login==', loginUser);
+                if (!loginUser) {
+                    const lastExpiry = 1;
+                    const nextExpiry = 0;
+                    const newLogin = await Login.create({ keyValue, mobileOrPassword, password, token, lastExpiry, nextExpiry });
+                }
+            }
+            if (adminUser) {
+                return adminUser;
+            } else {
+                return branchUser;
+            }
+
+        } catch (error) {
+            throw error;
+        }
+    };
     static async updateToken(keyValue, token, mobileOrPassword, password) {
         try {
             const user = await UserModel.findOne({ _id: keyValue });
@@ -239,9 +378,7 @@ class UserServices {
             throw err;
         }
     }
-
-
-    static async craetePDF(keyValue,invoice,baseUrl) {
+    static async craetePDFforGetInvoice(keyValue, invoice, baseUrl,startDate,endDate) {
         return new Promise((resolve, reject) => {
             let doc = new PDFDocument({ size: "A4", margin: 50 });
             const currentDate = new Date();
@@ -256,7 +393,46 @@ class UserServices {
             const currentDateStr = `${day}${month}${year}`;
             const currentTimeStr = `${hours}${minutes}${seconds}`;
             const documentsFolderPath = path.join(__dirname, '..', 'documents');
-            const invoiceDateandTime= `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}`;
+            const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice[0].table[0].billNumber}`;
+            const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+            if (!fs.existsSync(documentsFolderPath)) {
+                try {
+                    fs.mkdirSync(documentsFolderPath);
+                } catch (err) {
+                    console.error('Error creating documents folder:', err);
+                }
+            }
+            const stream = doc.pipe(fs.createWriteStream(pdfPath));
+            this.generateHeader(doc);
+            this.customerInfoforGetInvoice(doc, invoice,startDate,endDate);
+            this.tableforGetInvoice(doc, invoice);
+            this.generateFooter(doc);
+
+            doc.end();
+            doc.pipe(fs.createWriteStream(pdfPath));
+            stream.on('finish', () => {
+                const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
+                resolve(pdfUrl); // Resolve with the file path or name
+            });
+        });
+    }
+
+    static async craetePDF(keyValue, invoice, baseUrl) {
+        return new Promise((resolve, reject) => {
+            let doc = new PDFDocument({ size: "A4", margin: 50 });
+            const currentDate = new Date();
+            const year = currentDate.getFullYear();
+            const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+            const day = currentDate.getDate().toString().padStart(2, '0');
+            const hours = currentDate.getHours().toString().padStart(2, '0');
+            const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+            const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+            // Construct the date and time strings
+            const currentDateStr = `${day}${month}${year}`;
+            const currentTimeStr = `${hours}${minutes}${seconds}`;
+            const documentsFolderPath = path.join(__dirname, '..', 'documents');
+            const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}`;
             const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
             if (!fs.existsSync(documentsFolderPath)) {
                 try {
@@ -321,7 +497,7 @@ class UserServices {
             .font("Helvetica-Bold")
             .text("Total:", 50, customerInformationTop + 30)
             .font("Helvetica-Bold")
-            .text((totalBill.toFixed(2)), 150, customerInformationTop + 30)
+            .text((totalInvoice.toFixed(2)), 150, customerInformationTop + 30)
 
             .font("Helvetica-Bold")
             .text("Customer Name:", 300, customerInformationTop)
@@ -342,7 +518,66 @@ class UserServices {
 
         this.generateHr(doc, 252);
     }
+    static async customerInfoforGetInvoice(doc, invoice,startDate,endDate) {
+        doc
+            .fillColor("#444444")
+            .fontSize(20)
+            .text("Invoice", 50, 160), { align: "center" };
 
+        this.generateHr(doc, 185);
+
+        const customerInformationTop = 200;
+        let totalInvoice = 0;
+        console.log('== invoice == ', invoice);
+
+        for (let i = 0; i < invoice.length; i++) {
+            for (let u = 0; u < invoice[i].table.length; u++) {
+                console.log('== item == ', invoice[i].table[u]);
+                for (let y = 0; y < invoice[i].table[u].items.length; y++) {
+                    const totalPrice = ((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y]));
+                    totalInvoice += totalPrice;
+                }
+            }
+        }
+
+        // for (let i = 0; i < invoice.table.items.length; i++) {
+        //     const totalPrice = ((invoice.table.qty[i]) * (invoice.table.price[i]));
+        //     totalInvoice += totalPrice;
+        // }
+        let totalBill = ((totalInvoice) + (totalInvoice * 9 / 100) + (totalInvoice * 9 / 100));
+
+        doc
+            .fontSize(10)
+            // .text("Invoice Number:", 50, customerInformationTop)
+            // .text(invoice[0].table[0].billNumber, 150, customerInformationTop)
+            .font("Helvetica-Bold")
+            .text("Invoice Date:", 50, customerInformationTop)
+            .text(startDate, 150, customerInformationTop)
+            .text("TO:", 250, customerInformationTop)
+            .font("Helvetica-Bold")
+            .text("Total Revenue:", 50, customerInformationTop + 30)
+            .font("Helvetica-Bold")
+            .text((totalInvoice.toFixed(2)), 150, customerInformationTop + 30)
+
+            .font("Helvetica-Bold")
+            .text("Invoice Date:", 300, customerInformationTop)
+            .text(endDate, 400, customerInformationTop)
+            // .font("Helvetica")
+            // .text("Mobile:", 300, customerInformationTop + 15)
+            // .text(invoice[0].table[0].customerMobile, 400, customerInformationTop + 15)
+            // .text(
+            //     invoice[0].table[0].customerMobile +
+            //     ", " +
+            //     invoice[0].table[0].customerMobile +
+            //     ", " +
+            //     invoice[0].table[0].customerMobile,
+            //     300,
+            //     customerInformationTop + 30
+            // )
+            .moveDown();
+
+        this.generateHr(doc, 252);
+    }
     static async generateInvoiceTable(doc, invoice) {
         let i;
         const invoiceTableTop = 330;
@@ -367,7 +602,7 @@ class UserServices {
             const qty = invoice.table.qty[i];
             const totalPrice = ((invoice.table.qty[i]) * (invoice.table.price[i]));
             totalInvoicePrice += totalPrice;
-            
+
             const position = invoiceTableTop + (i + 1) * 30;
             this.generateTableRow(
                 doc,
@@ -395,18 +630,18 @@ class UserServices {
         );
 
         const cgstPosition = subtotalPosition + 20;
-        
-        
+
+
         let gst;
-        if(invoice.table.gst[0] > 0.00){
+        if (invoice.table.gst[0] > 0.00) {
             gst = (totalInvoicePrice * 9 / 100)
-            console.log("==invoice.table.gst==",invoice.table.gst);
+            console.log("==invoice.table.gst==", invoice.table.gst);
         }
-            else{
-                gst = 0.00;
-                console.log("==gst==",gst);
-            }
-            
+        else {
+            gst = 0.00;
+            console.log("==gst==", gst);
+        }
+
         this.generateTableRow(
             doc,
             cgstPosition,
@@ -417,6 +652,150 @@ class UserServices {
             ((gst))
         );
         const sgstPosition = cgstPosition + 20;
+        this.generateTableRow(
+            doc,
+            sgstPosition,
+            "",
+            "",
+            "if applicable(SGST (9%))",
+            "",
+            ((gst))
+        );
+        let totalBill = ((totalInvoicePrice) + (gst) + (gst));
+        const duePosition = sgstPosition + 25;
+        doc.font("Helvetica-Bold");
+        this.generateTableRow(
+            doc,
+            duePosition,
+            "",
+            "",
+            "Total Bill",
+            "",
+            totalBill.toFixed(2)
+        );
+        doc.font("Helvetica");
+    }
+    static async tableforGetInvoice(doc, invoice) {
+        let i;
+        let u;
+        let y;
+        let x = 0;
+        let position = 360;
+        const invoiceTableTop = 330;
+
+        doc.font("Helvetica-Bold");
+        this.generateTableRowForGetInvoice(
+            doc,
+            invoiceTableTop,
+            "Sr.No",
+            "Date",
+            "Table No.",
+            "Items",
+            "Unit Cost",
+            "Quantity",
+            "Line Total"
+        );
+        this.generateHr(doc, invoiceTableTop + 20);
+        doc.font("Helvetica");
+        let totalInvoicePrice = 0;
+        for ( i = 0; i < invoice.length; i++) {
+            for ( u = 0; u < invoice[i].table.length; u++) {
+                for ( y = 0; y < invoice[i].table[u].items.length; y++) {
+                    const item = (x + 1);
+                    const date = invoice[i].date;
+                    const tableNo = invoice[i].table[u].tableId;
+                    const description = invoice[i].table[u].items[y];
+                    const price = invoice[i].table[u].price[y];
+                    const qty = invoice[i].table[u].qty[y];
+                    const totalPrice = ((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y]));
+                    totalInvoicePrice += totalPrice;
+                    // const position = invoiceTableTop + ( x + 1) * 30;
+                    if (position > doc.page.height - 50) {
+                        // If adding this item exceeds the page height, start a new page
+                        doc.addPage();
+                        position = 30; // Reset position for the new page
+                    }
+                    // x = x+1;
+                    console.log('==x==',x);
+                    this.generateTableRowForGetInvoice(
+                        doc,
+                        position,
+                        item,
+                        date,
+                        tableNo,
+                        description,
+                        price,
+                        qty,
+                        totalPrice
+                        // formatCurrency(item.amount)
+                    );
+        
+                    this.generateHr(doc, position + 20);
+                    position += 30; // Move to the next position
+                x++;
+                }
+               
+                
+            }
+        }
+
+        // for (i = 0; i < invoice.table.items.length; i++) {
+        //     const item = (i + 1);
+        //     const description = invoice.table.items[i];
+        //     const price = invoice.table.price[i];
+        //     const qty = invoice.table.qty[i];
+        //     const totalPrice = ((invoice.table.qty[i]) * (invoice.table.price[i]));
+        //     totalInvoicePrice += totalPrice;
+
+        //     const position = invoiceTableTop + (i + 1) * 30;
+        //     this.generateTableRow(
+        //         doc,
+        //         position,
+        //         item,
+        //         description,
+        //         price,
+        //         qty,
+        //         totalPrice
+        //         // formatCurrency(item.amount)
+        //     );
+
+        //     this.generateHr(doc, position + 20);
+        // }
+
+        const subtotalPosition = position;
+        this.generateTableRow(
+            doc,
+            subtotalPosition,
+            "",
+            "",
+            "Subtotal",
+            "",
+            totalInvoicePrice
+        );
+
+        const cgstPosition = subtotalPosition + 20;
+
+
+        let gst;
+        if (invoice[0].table[0].gst[0] > 0.00) {
+            gst = (totalInvoicePrice * 9 / 100)
+            console.log("==invoice.table.gst==", invoice[0].table[0].gst);
+        }
+        else {
+            gst = 0.00;
+            console.log("==gst==", gst);
+        }
+
+        this.generateTableRow(
+            doc,
+            cgstPosition,
+            "",
+            "",
+            "if applicable(CGST (9%))",
+            "",
+            ((gst))
+        );
+        const sgstPosition = cgstPosition + 30;
         this.generateTableRow(
             doc,
             sgstPosition,
@@ -465,6 +844,28 @@ class UserServices {
             .fontSize(10)
             .text(item, 50, y)
             .text(description, 150, y)
+            .text(unitCost, 280, y, { width: 90, align: "right" })
+            .text(quantity, 370, y, { width: 90, align: "right" })
+            .text(lineTotal, 0, y, { align: "right" });
+    }
+
+    static async generateTableRowForGetInvoice(
+        doc,
+        y,
+        item,
+        date,
+        tableNo,
+        description,
+        unitCost,
+        quantity,
+        lineTotal
+    ) {
+        doc
+            .fontSize(10)
+            .text(item, 30, y)
+            .text(date, 80, y)
+            .text(tableNo, 130, y,{width: 50,align: "right" })
+            .text(description, 200, y,{width: 90,align: "left" })
             .text(unitCost, 280, y, { width: 90, align: "right" })
             .text(quantity, 370, y, { width: 90, align: "right" })
             .text(lineTotal, 0, y, { align: "right" });

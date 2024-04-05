@@ -1,5 +1,5 @@
 const UserServices = require("../services/user_services");
-const { UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf } = require("../model/user_model");
+const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf } = require("../model/user_model");
 const jwt = require("jsonwebtoken");
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
@@ -9,6 +9,63 @@ const secretKey = "secretKey";
 const path = require('path');
 const hbs = require("hbs")
 
+exports.adminRegister = async (req, res, next) => {
+    try {
+        const { userName, mobile, password, branches } = req.body;
+
+        if (!userName) {
+            return res.status(400).json({ status: false, msg: "UserName is required." });
+        }
+        else if (!mobile) {
+            return res.status(400).json({ status: false, msg: "Mobile is required." });
+        }
+        else if (!password) {
+            return res.status(400).json({ status: false, msg: "password is required." });
+        }
+        else if (!branches) {
+            return res.status(400).json({ status: false, msg: "branches is required." });
+        }
+        if (branches.length > 3) {
+            res.json({ status: true, msg: "Not able to add More then 3 Branches" });
+        } else {
+            let isExist = false;
+            let branchuserIdFromLoop;
+            for (const value of branches) {
+                const allbranches = await AdminBranchesModel.find({ 'branches.userId': value.userId });
+                console.log('=allbranches==', allbranches);
+                if (allbranches.length > 0) {
+                    isExist = true;
+                    branchuserIdFromLoop = value.userId;
+                }
+            }
+            if (isExist) {
+                console.log('=isExist true==', isExist);
+                res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
+
+            } else {
+                console.log('=isExist==', isExist);
+                const adminResponse = await UserServices.adminRegister(userName, mobile, password);
+                const branchesRes = await UserServices.adminBranches(adminResponse._id, branches);
+                console.log('=admin branchesRes==', branchesRes);
+                res.json({ status: true, msg: "User Registration Successful" });
+            }
+
+
+
+
+
+        }
+
+    } catch (error) {
+        if (error.name === 'MongoServerError' && error.code === 11000) {
+            // If the error is due to duplicate email (MongoError code 11000)
+            return res.status(400).json({ status: false, msg: "This UserName or Mobile is already in use." });
+        } else {
+            // For other errors, return a generic error message
+            return res.status(500).json({ status: false, msg: `Internal Server Error ${error.name}` });
+        }
+    }
+}
 
 exports.register = async (req, res, next) => {
     try {
@@ -39,6 +96,241 @@ exports.register = async (req, res, next) => {
     }
 }
 
+exports.adminLogin = async (req, res, next) => {
+    try {
+        const { mobileOrUserName, password } = req.body;
+        console.log("=====Adminlog======", req.body);
+
+        if (!mobileOrUserName) {
+            return res.status(400).json({ status: false, msg: "Username or Mobile is required." });
+        }
+        else if (!password) {
+            return res.status(400).json({ status: false, msg: "Password is required." });
+        }
+
+        let user = await UserServices.checkAdminUser(mobileOrUserName);
+
+        if (!user) {
+            const branchLogin = await AdminBranchesModel.findOne({ 'branches.userId': mobileOrUserName });
+            console.log("=====branchLogin======", branchLogin);
+            let branches;
+            if (branchLogin && branchLogin.branches && branchLogin.branches.length > 0) {
+                branches = branchLogin.branches;
+            }
+            console.log("=====branches======", branches);
+            if (!branches) {
+                throw new Error("User does not exist");
+            } else {
+                let userName;
+                let userPassword;
+                let branchId;
+                for (const value of branches) {
+                    if (value.userId === mobileOrUserName) {
+                        userName = value.userId;
+                        userPassword = value.pass;
+                        branchId = value._id;
+                    }
+                }
+
+                if (userName) {
+                    console.log("=====userPassword======", userPassword);
+                    if (userPassword === password) {
+                        let tokenData = { _id: branchId, userId: userName };
+                        const tokenExpire = 365 * 24 * 60 * 60;
+                        const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", branchId);
+                        const keyValue = branchId;
+                        await UserServices.adminUpdateToken(keyValue, token, mobileOrUserName, password);
+
+                        res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: false } });
+                    }
+                    else {
+                        res.status(400).json({ status: false, msg: "Password Does not Match", response: null });
+                    }
+                }
+
+            }
+        } else {
+
+            const isMatch = await user.compareAdminPassword(password);
+            console.log("=====isMatch======", isMatch);
+            if (isMatch === false) {
+                throw new Error("Password is Invalid");
+            }
+
+            let tokenData = { _id: user._id, mobile: user.mobile };
+            const tokenExpire = 365 * 24 * 60 * 60;
+            const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", user._id);
+            const keyValue = user._id;
+            await UserServices.adminUpdateToken(keyValue, token, mobileOrUserName, password);
+
+            res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: user.isAdmin } });
+        }
+    } catch (error) {
+        if (error.message === 'User does not exist' || error.message === 'Password is Invalid') {
+            return res.status(400).json({ status: false, msg: error.message });
+        } else {
+            return res.status(400).json({ status: false, msg: `Session expired`, response: null });
+        }
+    }
+}
+exports.addBranch = async (req, res, next) => {
+    const isValidToken = await UserServices.checkToken(req.token);
+    if (isValidToken) {
+        try {
+            jwt.verify(req.token, secretKey, async (error, authData) => {
+                if (error) {
+
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+
+                } else {
+
+                    const keyValue = await authData._id;
+                    const { branches } = req.body;
+                    const branchesRes = await AdminBranchesModel.findOne({ keyValue: keyValue });
+                    if (branchesRes) {
+                        console.log("==log==",branchesRes);
+                        return res.status(200).json({ status: false, msg: "Branch added", response: branchesRes });
+                    } else {
+                        return res.status(400).json({ status: false, msg: "Not found", response: null });
+                    }
+
+                }
+            });
+        } catch (error) {
+            if (error.message) {
+                return res.status(400).json({ status: false, msg: `Session Expire Please contect admin ${error.message}` });
+            } else {
+                return res.status(500).json({ status: false, msg: `Internal Server Error ${error.message}` });
+            }
+        }
+    } else {
+        res.status(200).json({
+            status: false,
+            msg: "Your Subscription Expire Please Contect Admin",
+            response: null
+        });
+    }
+
+}
+exports.getBranch = async (req, res, next) => {
+    const isValidToken = await UserServices.checkToken(req.token);
+    if (isValidToken) {
+        try {
+            jwt.verify(req.token, secretKey, async (error, authData) => {
+                if (error) {
+
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+
+                } else {
+                    const keyValue = await authData._id;
+
+                    if (keyValue !== null) {
+                        const getAllBranches = await AdminBranchesModel.find({ keyValue: `${keyValue}` });
+
+                        if (getAllBranches.length !== 0) {
+                            let abc;
+                            for (const value of getAllBranches) {
+                                abc = value.branches;
+                            }
+                            const filteredBranches = abc.map(obj => ({
+                                branchName: obj.branchName,
+                                userId: obj.userId,
+                                id: obj._id
+                            }))
+                            res.json({ status: true, msg: "All Branches Retrieve Successful", response: { branches: filteredBranches } });
+                        } else {
+                            res.json({ status: false, msg: "No Branches Found", response: null });
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            if (error.message) {
+                return res.status(400).json({ status: false, msg: "Session Expire Please contect admin" });
+            } else {
+                return res.status(500).json({ status: false, msg: `Internal Server Error ${error.message}` });
+            }
+        }
+    } else {
+        res.status(200).json({
+            status: false,
+            msg: "Your Subscription Expire Please Contect Admin",
+            response: null
+        });
+    }
+
+}
+exports.editBranch = async (req, res, next) => {
+    const isValidToken = await UserServices.checkToken(req.token);
+    if (isValidToken) {
+        try {
+            jwt.verify(req.token, secretKey, async (error, authData) => {
+                if (error) {
+
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+
+                } else {
+
+                    try {
+
+                        const keyValue = await authData._id;
+                        const data = req.body;
+                        const { id, branchName } = req.body;
+                        const getAllBranches = await AdminBranchesModel.findOne({ keyValue: `${keyValue}`, 'branches._id': id });
+                        console.log("=====getAllBranches====", getAllBranches);
+                        const branches = getAllBranches.branches;
+                        let updateBranch;
+                        for (let i = 0; i < branches.length;) {
+
+                            if (branches[i]._id == `${id}`) {
+                                console.log("=====branches[i].branchName====", branches[i]._id, id);
+                                branches[i].branchName = branchName;
+                                // const newList = await getAllBranches.save();
+                            }
+                            i++;
+                        }
+                        console.log("=====branches====", updateBranch);
+                        if (getAllBranches === null) {
+                            res.json({ status: false, msg: "Menu List Not Found", response: null });
+                        } else {
+
+
+                            const newList = await getAllBranches.save();
+                            console.log("=====newList====", newList);
+                            res.json({ status: true, msg: "Branch Update Successful", response: null });
+                        }
+
+
+
+                    } catch (err) {
+                        res.status(400).json({ message: err.message });
+                    }
+                }
+
+            });
+
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    } else {
+        res.status(200).json({
+            status: false,
+            msg: "Your Subscription Expire Please Contect Admin",
+            response: null
+        });
+    }
+
+
+}
 exports.login = async (req, res, next) => {
     try {
         const { mobileOrPassword, password } = req.body;
@@ -293,32 +585,32 @@ exports.forgotPassword = async (req, res, next) => {
 
 exports.resetPassword = async (req, res, next) => {
 
-        try {
-            jwt.verify(req.token, secretKey, async (error, authData) => {
-                if (error) {
+    try {
+        jwt.verify(req.token, secretKey, async (error, authData) => {
+            if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                res.json({
+                    status: false,
+                    msg: "Token Invalid"
+                });
 
-                } else {
-                    const { newPassword } = req.body;
-                    const user = await UserModel.findOne({ _id: authData._id });
-                    console.log('===user===', user);
-                    if (!user) {
-                        return res.status(400).json({ error: 'Invalid or expired token' });
-                    }
-                    user.password = newPassword;
-                    await user.save();
-                    res.status(200).json({ status: true, message: 'Password reset successfully, Now Login with New Password', response: null });
+            } else {
+                const { newPassword } = req.body;
+                const user = await UserModel.findOne({ _id: authData._id });
+                console.log('===user===', user);
+                if (!user) {
+                    return res.status(400).json({ error: 'Invalid or expired token' });
                 }
+                user.password = newPassword;
+                await user.save();
+                res.status(200).json({ status: true, message: 'Password reset successfully, Now Login with New Password', response: null });
+            }
 
-            });
-        } catch (error) {
+        });
+    } catch (error) {
 
-        }
-    } 
+    }
+}
 exports.addCustomer = async (req, res, next) => {
     const isValidToken = await UserServices.checkToken(req.token);
     if (isValidToken) {
@@ -711,18 +1003,18 @@ exports.addInvoice = async (req, res, next) => {
                     const forPdfInvoice = {
                         no: existingInvoice.no,
                         date: existingInvoice.date,
-                        table: abc[(index-1)]
+                        table: abc[(index - 1)]
                     }
-                    const invoicePdf = await UserServices.craetePDF(keyValue,forPdfInvoice,req.headers.host);
+                    const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
                     const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
-                    console.log('===invoicePdf===',invoicePdf);
+                    console.log('===invoicePdf===', invoicePdf);
                     if (deletedOrder) {
                         console.log("==tableOrder Deleted==");
                     } else {
                         console.log("==tableOrder not found==");
                     }
-                   
-                    res.status(200).json({ status: true, msg: "New table added to existing invoice", response: {invoicePdf} });
+
+                    res.status(200).json({ status: true, msg: "New table added to existing invoice", response: { invoicePdf } });
                 } else {
                     try {
                         const latestInvoice = await Invoice.findOne().sort({ no: -1 });
@@ -761,14 +1053,21 @@ exports.addInvoice = async (req, res, next) => {
                             table: responseTable
 
                         };
-                        const invoicePdf = await UserServices.craetePDF(keyValue,forPdfInvoice,req.headers.host);
+                        const index = abc.length;
+                        // console.log('===abc===',abc[(index-1)]);
+                        const forPdfInvoice = {
+                            no: existingInvoice.no,
+                            date: existingInvoice.date,
+                            table: abc[(index - 1)]
+                        }
+                        const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
                         const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
                         if (deletedOrder) {
                             console.log("==tableOrder Deleted==");
                         } else {
                             console.log("==tableOrder not found==");
                         }
-                        res.status(200).json({ status: true, msg: "Invoice added", response: {invoicePdf} });
+                        res.status(200).json({ status: true, msg: "Invoice added", response: { invoicePdf } });
                     } catch (error) {
                         console.error("Error adding invoice:", error);
                         res.status(500).json({ status: false, msg: "Internal server error" });
@@ -841,14 +1140,14 @@ exports.getInvoice = async (req, res, next) => {
 
                     if (invoice.length > 0) {
                         const date = invoice[0].date;
-                        // const invoicePdf = await UserServices.craetePDF(invoice);
+                        const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host,startDate,endDate);
 
-                        // console.log("pdf",invoicePdf);
-                        const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
+                        console.log("==pdf==",invoicePdf);
+                        // const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
                         //  const pdf = await this.getPdf(invoicePdf);
-                        const pdfUrl = `http://192.168.1.7:3000/pdf`;
+                        // const pdfUrl = `http://192.168.1.7:3000/pdf`;
 
-                        res.status(200).json({ status: true, msg: "Invoices Retrieve Successful", response: { invoice } });
+                        res.status(200).json({ status: true, msg: "Invoices Retrieve Successful", response: { invoicePdf } });
                     } else {
                         res.status(200).json({ status: true, msg: "Invoices not Found in this Date Range", response: null });
                     }
@@ -875,7 +1174,10 @@ exports.getInvoice = async (req, res, next) => {
                             total
                         }))
                     }));
-                    res.status(200).json({ status: true, msg: "Invoices Retrieve Successful for this Date Range", response: { invoice } });
+                    const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host,startDate,endDate);
+
+                        console.log("==pdf==",invoicePdf);
+                    res.status(200).json({ status: true, msg: "Invoices Retrieve Successful for this Date Range", response: { invoicePdf } });
                 }
             }
         });
@@ -887,7 +1189,7 @@ exports.getInvoice = async (req, res, next) => {
         });
     }
 };
-exports.getPdf = async (invoicePdf,req, res, next) => {
+exports.getPdf = async (invoicePdf, req, res, next) => {
     const documentsFolderPath = path.join(__dirname, '..', 'documents');
     console.log("==", documentsFolderPath)
     const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
