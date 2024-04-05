@@ -42,11 +42,11 @@ class UserServices {
             throw err;
         }
     }
-    static async checkAdminUser(mobileOrUserName) {
+    static async checkAdminUser(mobileOrPassword) {
         try {
             // Search for a user by either userName or mobile number
             return await AdminUserModel.findOne({
-                $or: [{ userName: mobileOrUserName }, { mobile: mobileOrUserName }]
+                $or: [{ userName: mobileOrPassword }, { mobile: mobileOrPassword }]
             });
         } catch (error) {
             throw error;

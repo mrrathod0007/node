@@ -98,20 +98,20 @@ exports.register = async (req, res, next) => {
 
 exports.adminLogin = async (req, res, next) => {
     try {
-        const { mobileOrUserName, password } = req.body;
+        const { mobileOrPassword, password } = req.body;
         console.log("=====Adminlog======", req.body);
 
-        if (!mobileOrUserName) {
+        if (!mobileOrPassword) {
             return res.status(400).json({ status: false, msg: "Username or Mobile is required." });
         }
         else if (!password) {
             return res.status(400).json({ status: false, msg: "Password is required." });
         }
 
-        let user = await UserServices.checkAdminUser(mobileOrUserName);
+        let user = await UserServices.checkAdminUser(mobileOrPassword);
 
         if (!user) {
-            const branchLogin = await AdminBranchesModel.findOne({ 'branches.userId': mobileOrUserName });
+            const branchLogin = await AdminBranchesModel.findOne({ 'branches.userId': mobileOrPassword });
             console.log("=====branchLogin======", branchLogin);
             let branches;
             if (branchLogin && branchLogin.branches && branchLogin.branches.length > 0) {
@@ -125,7 +125,7 @@ exports.adminLogin = async (req, res, next) => {
                 let userPassword;
                 let branchId;
                 for (const value of branches) {
-                    if (value.userId === mobileOrUserName) {
+                    if (value.userId === mobileOrPassword) {
                         userName = value.userId;
                         userPassword = value.pass;
                         branchId = value._id;
@@ -139,7 +139,7 @@ exports.adminLogin = async (req, res, next) => {
                         const tokenExpire = 365 * 24 * 60 * 60;
                         const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", branchId);
                         const keyValue = branchId;
-                        await UserServices.adminUpdateToken(keyValue, token, mobileOrUserName, password);
+                        await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
 
                         res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: false } });
                     }
@@ -161,12 +161,12 @@ exports.adminLogin = async (req, res, next) => {
             const tokenExpire = 365 * 24 * 60 * 60;
             const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", user._id);
             const keyValue = user._id;
-            await UserServices.adminUpdateToken(keyValue, token, mobileOrUserName, password);
+            await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
 
             res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: user.isAdmin } });
         }
     } catch (error) {
-        if (error.message === 'User does not exist' || error.message === 'Password is Invalid') {
+        if (error.message) {
             return res.status(400).json({ status: false, msg: error.message });
         } else {
             return res.status(400).json({ status: false, msg: `Session expired`, response: null });
