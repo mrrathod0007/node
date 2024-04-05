@@ -642,7 +642,7 @@ class UserServices {
             console.log("==gst==", gst);
         }
 
-        this.generateTableRow(
+        this.generateTableRowforgst(
             doc,
             cgstPosition,
             "",
@@ -652,7 +652,7 @@ class UserServices {
             ((gst))
         );
         const sgstPosition = cgstPosition + 20;
-        this.generateTableRow(
+        this.generateTableRowforgst(
             doc,
             sgstPosition,
             "",
@@ -786,7 +786,7 @@ class UserServices {
             console.log("==gst==", gst);
         }
 
-        this.generateTableRow(
+        this.generateTableRowforgst(
             doc,
             cgstPosition,
             "",
@@ -796,7 +796,7 @@ class UserServices {
             ((gst))
         );
         const sgstPosition = cgstPosition + 30;
-        this.generateTableRow(
+        this.generateTableRowforgst(
             doc,
             sgstPosition,
             "",
@@ -848,6 +848,23 @@ class UserServices {
             .text(quantity, 370, y, { width: 90, align: "right" })
             .text(lineTotal, 0, y, { align: "right" });
     }
+    static async generateTableRowforgst(
+        doc,
+        y,
+        item,
+        description,
+        unitCost,
+        quantity,
+        lineTotal
+    ) {
+        doc
+            .fontSize(10)
+            .text(item, 50, y)
+            .text(description, 150, y)
+            .text(unitCost, 250, y, { width: 120, align: "right" })
+            .text(quantity, 370, y, { width: 90, align: "right" })
+            .text(lineTotal, 0, y, { align: "right" });
+    }
 
     static async generateTableRowForGetInvoice(
         doc,
@@ -864,11 +881,11 @@ class UserServices {
             .fontSize(10)
             .text(item, 30, y)
             .text(date, 80, y)
-            .text(tableNo, 130, y,{width: 50,align: "right" })
-            .text(description, 200, y,{width: 90,align: "left" })
-            .text(unitCost, 280, y, { width: 90, align: "right" })
-            .text(quantity, 370, y, { width: 90, align: "right" })
-            .text(lineTotal, 0, y, { align: "right" });
+            .text(tableNo, 130, y,{width: 50,align: "center" })
+            .text(description, 200, y,{width: 90,align: "center" })
+            .text(unitCost, 280, y, { width: 90, align: "center" })
+            .text(quantity, 370, y, { width: 90, align: "center" })
+            .text(lineTotal, 480, y, { align: "center" });
     }
 
     static async generateHr(doc, y) {
