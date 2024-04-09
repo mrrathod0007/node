@@ -1082,6 +1082,7 @@ exports.addInvoice = async (req, res, next) => {
                     res.status(200).json({ status: true, msg: "New table added to existing invoice", response: { invoicePdf } });
                 } else {
                     try {
+                        
                         const latestInvoice = await Invoice.findOne().sort({ no: -1 });
                         let no = "01";
                         if (latestInvoice) {
@@ -1118,14 +1119,14 @@ exports.addInvoice = async (req, res, next) => {
                             table: responseTable
 
                         };
-                        const index = abc.length;
-                        // console.log('===abc===',abc[(index-1)]);
-                        const forPdfInvoice = {
-                            no: existingInvoice.no,
-                            date: existingInvoice.date,
-                            table: abc[(index - 1)]
-                        }
-                        const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
+                        // const index = abc.length;
+                        // // console.log('===abc===',abc[(index-1)]);
+                        // const forPdfInvoice = {
+                        //     no: existingInvoice.no,
+                        //     date: existingInvoice.date,
+                        //     table: abc[(index - 1)]
+                        // }
+                        const invoicePdf = await UserServices.craetePDF(keyValue, responseInvoice, req.headers.host);
                         const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
                         if (deletedOrder) {
                             console.log("==tableOrder Deleted==");
