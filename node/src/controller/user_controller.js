@@ -842,7 +842,13 @@ exports.getMenu = async (req, res, next) => {
                         console.log("=====keyValue======", keyValue);
                         const branchUser = await AdminBranchesModel.findOne({'branches._id': keyValue });
                         console.log("=====branchUser======", branchUser);
-                        const list = await Menu.find({ keyValue: `${branchUser.keyValue}` });
+                        let list;
+                        if(branchUser !== null ){
+                            list = await Menu.find({ keyValue: `${branchUser.keyValue}` });
+                        }else{
+                            list = await Menu.find({ keyValue: `${keyValue}` });
+                        }
+                        
 
                         if (list.length === 0) {
                             res.json({ status: false, msg: "Menu List Not Found", response: null });
