@@ -515,8 +515,8 @@ exports.getTable = async (req, res, next) => {
                     const keyValue = await authData._id;
                     const { branchName } = await req.body;
                     if (branchName && keyValue !== null) {
-                       let branchKeyValue;
-                        const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue,'branches.branchName': branchName });
+                        let branchKeyValue;
+                        const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue, 'branches.branchName': branchName });
                         console.log("=====branchUser======", branchUser);
                         let branches;
                         if (branchUser && branchUser.branches && branchUser.branches.length > 0) {
@@ -536,19 +536,19 @@ exports.getTable = async (req, res, next) => {
                                     branchId = value._id;
                                 }
                             }
-            
+
                             if (userName) {
                                 console.log("=====userName======", userName);
                                 if (branchName === userName) {
-                                branchKeyValue = branchId;
-            
+                                    branchKeyValue = branchId;
+
                                     // res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: false } });
                                 }
                                 else {
                                     res.status(400).json({ status: false, msg: "Branch did not Match", response: null });
                                 }
                             }
-            
+
                         }
 
 
@@ -567,11 +567,11 @@ exports.getTable = async (req, res, next) => {
                         } else {
                             res.json({ status: false, msg: "No Table Found", response: null });
                         }
-                    }else{
+                    } else {
                         if (keyValue !== null) {
                             // console.log('======body======', keyValue);
                             const getTable = await UserAddTable.find({ keyValue: `${keyValue}` });
-    
+
                             if (getTable.length !== 0) {
                                 const filteredTable = getTable.map(table => ({
                                     tableId: table.tableId,
@@ -585,11 +585,11 @@ exports.getTable = async (req, res, next) => {
                             } else {
                                 res.json({ status: false, msg: "No Table Found", response: null });
                             }
-    
-    
+
+
                         }
                     }
-                   
+
 
 
 
@@ -840,15 +840,15 @@ exports.getMenu = async (req, res, next) => {
 
                         const keyValue = await authData._id;
                         console.log("=====keyValue======", keyValue);
-                        const branchUser = await AdminBranchesModel.findOne({'branches._id': keyValue });
+                        const branchUser = await AdminBranchesModel.findOne({ 'branches._id': keyValue });
                         console.log("=====branchUser======", branchUser);
                         let list;
-                        if(branchUser !== null ){
+                        if (branchUser !== null) {
                             list = await Menu.find({ keyValue: `${branchUser.keyValue}` });
-                        }else{
+                        } else {
                             list = await Menu.find({ keyValue: `${keyValue}` });
                         }
-                        
+
 
                         if (list.length === 0) {
                             res.json({ status: false, msg: "Menu List Not Found", response: null });
@@ -1082,7 +1082,7 @@ exports.addInvoice = async (req, res, next) => {
                     res.status(200).json({ status: true, msg: "New table added to existing invoice", response: { invoicePdf } });
                 } else {
                     try {
-                        
+
                         const latestInvoice = await Invoice.findOne().sort({ no: -1 });
                         let no = "01";
                         if (latestInvoice) {
@@ -1163,7 +1163,7 @@ exports.getInvoice = async (req, res, next) => {
                 });
             } else {
                 const keyValue = authData._id;
-                const { startDate, endDate, tableId } = req.body;
+                const { branchName, startDate, endDate, tableId } = req.body;
                 console.log("==keyValue==", startDate, endDate);
                 console.log("==startDate==", startDate, endDate); // Assuming startDate and endDate are provided
 
@@ -1173,9 +1173,24 @@ exports.getInvoice = async (req, res, next) => {
 
                 console.log("==tableId==", tableId);
                 let existingInvoices;
+                const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue, 'branches.branchName': branchName });
+                let branchKeyValue;
+                let branches;
+                if (branchUser !== null) {
+                    branches = branchUser.branches;
+                    for(const value of branches){
+                        console.log("==value==", value._id);
+                        branchKeyValue = `${value._id}`;
+                    }
+                    
+                    console.log("==branches==", branches._id);
+                } else {
+                    branchKeyValue = null;
+                }
+                console.log("==branchKeyValue==", branchKeyValue !== undefined ? branchKeyValue : keyValue);
                 if (tableId !== undefined) {
                     existingInvoices = await Invoice.find({
-                        keyValue: keyValue,
+                        keyValue: branchKeyValue !== null ? branchKeyValue : keyValue,
                         date: { $gte: startDate, $lte: endDate }
                     });
                     const filteredInvoices = existingInvoices.map(invoice => ({
@@ -1220,30 +1235,39 @@ exports.getInvoice = async (req, res, next) => {
 
                 } else {
                     existingInvoices = await Invoice.find({
-                        keyValue: keyValue,
+                        keyValue: branchKeyValue !== null ? branchKeyValue : keyValue,
                         date: { $gte: startDate, $lte: endDate }
                     });
                     console.log("==existingInvoices==", existingInvoices, keyValue);
-                    const invoice = existingInvoices.map(invoice => ({
-                        id: invoice.id,
-                        date: invoice.date,
-                        table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items, price, qty, subTotal, gst, total }) => ({
-                            tableId,
-                            customerName,
-                            customerMobile,
-                            tableMember,
-                            items,
-                            price,
-                            qty,
-                            subTotal,
-                            gst,
-                            total
-                        }))
-                    }));
-                    const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
+                    if (existingInvoices.length > 0) {
+                        const invoice = existingInvoices.map(invoice => ({
+                            id: invoice.id,
+                            date: invoice.date,
+                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items, price, qty, subTotal, gst, total }) => ({
+                                tableId,
+                                customerName,
+                                customerMobile,
+                                tableMember,
+                                items,
+                                price,
+                                qty,
+                                subTotal,
+                                gst,
+                                total
+                            }))
+                        }));
+                        const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
 
-                    console.log("==pdf==", invoicePdf);
-                    res.status(200).json({ status: true, msg: "Invoices Retrieve Successful for this Date Range", response: { invoicePdf } });
+                        console.log("==pdf==", invoicePdf);
+                        res.status(200).json({ status: true, msg: "Invoices Retrieve Successful for this Date Range", response: { invoicePdf } });
+
+                    } else {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Invoice Not FOund for this Date Range",
+                            response: null
+                        });
+                    }
                 }
             }
         });
