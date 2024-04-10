@@ -55,10 +55,18 @@ class UserServices {
     static async checkuser(mobileOrPassword) {
         try {
             // Search for a user by either userName or mobile number
-            
-            return await AdminUserModel.findOne({
+            const adminUser = await AdminUserModel.findOne({
                 $or: [{ userName: mobileOrPassword }, { mobile: mobileOrPassword }]
             });
+            const branchUser = await AdminBranchesModel.findOne({
+                $or: [{ 'branches.userId': mobileOrPassword }, { mobile: mobileOrPassword }]
+            });
+            if(adminUser){
+                return adminUser;
+            }else{
+                return branchUser;
+            }
+            
         } catch (error) {
             throw error;
         }
