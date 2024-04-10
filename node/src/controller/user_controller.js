@@ -709,7 +709,7 @@ exports.resetPassword = async (req, res, next) => {
 
             } else {
                 const { newPassword } = req.body;
-                const user = await UserModel.findOne({ _id: authData._id });
+                const user = await AdminUserModel.findOne({ _id: authData._id });
                 console.log('===user===', user);
                 if (!user) {
                     return res.status(400).json({ error: 'Invalid or expired token' });
