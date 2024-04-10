@@ -166,7 +166,7 @@ exports.adminLogin = async (req, res, next) => {
             res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: user.isAdmin } });
         }
     } catch (error) {
-        if (error.message) {
+        if (error.message === 'User does not exist' || error.message === 'Password is Invalid') {
             return res.status(400).json({ status: false, msg: error.message });
         } else {
             return res.status(400).json({ status: false, msg: `Session expired`, response: null });
@@ -174,7 +174,9 @@ exports.adminLogin = async (req, res, next) => {
     }
 }
 exports.addBranch = async (req, res, next) => {
+
     const isValidToken = await UserServices.checkToken(req.token);
+    console.log("==isValidToken==", isValidToken);
     if (isValidToken) {
         try {
             jwt.verify(req.token, secretKey, async (error, authData) => {
@@ -190,12 +192,64 @@ exports.addBranch = async (req, res, next) => {
                     const keyValue = await authData._id;
                     const { branches } = req.body;
                     const branchesRes = await AdminBranchesModel.findOne({ keyValue: keyValue });
-                    if (branchesRes) {
-                        console.log("==log==", branchesRes);
-                        return res.status(200).json({ status: false, msg: "Branch added", response: branchesRes });
-                    } else {
-                        return res.status(400).json({ status: false, msg: "Not found", response: null });
+                    let resBranch;
+                    let resLength = 0;
+                    if(branchesRes){
+                        resBranch = branchesRes.branches;
+                        resLength = resBranch.length;
                     }
+                   
+                    const reqLength = branches.length;
+                    const newLength = resLength + reqLength;
+                    console.log("==resLength==", resLength);
+                    console.log("==newLength==", newLength);
+
+                    if (newLength > 3) {
+                        return res.status(400).json({ status: false, msg: `You Have already ${resLength} You Can not more then 3 Branches`, response: null });
+                    } else {
+                        let isExist = false;
+                        let branchuserIdFromLoop;
+                        for (const value of branches) {
+                            const allbranches = await AdminBranchesModel.find({ 'branches.userId': value.userId });
+                            if (allbranches.length > 0) {
+                                isExist = true;
+                                branchuserIdFromLoop = value.userId;
+                            }
+                        }
+                        if (isExist) {
+                            console.log('=isExist true==', isExist);
+                            res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
+
+                        }else{
+                            for (const value of branches) {
+                                branchesRes.branches.push({
+                                    branchName: value.branchName,
+                                    userId: value.userId,
+                                    pass: value.pass
+                                });
+                            }
+    
+                            console.log("==branches==", branches);
+                        }
+                      
+                    }
+                    const response = await branchesRes.save();
+                 
+                        console.log("==log==", response);
+                        const getAllBranches = await AdminBranchesModel.find({ keyValue: `${keyValue}` });
+                        if (getAllBranches.length !== 0) {
+                            let abc;
+                            for (const value of getAllBranches) {
+                                abc = value.branches;
+                            }
+                            const filteredBranches = abc.map(obj => ({
+                                branchName: obj.branchName,
+                                userId: obj.userId,
+                                id: obj._id
+                            }))
+                        return res.status(200).json({ status: true, msg: "Branch added", response: { branches: filteredBranches } });
+                    }
+                 
 
                 }
             });
@@ -1178,11 +1232,11 @@ exports.getInvoice = async (req, res, next) => {
                 let branches;
                 if (branchUser !== null) {
                     branches = branchUser.branches;
-                    for(const value of branches){
+                    for (const value of branches) {
                         console.log("==value==", value._id);
                         branchKeyValue = `${value._id}`;
                     }
-                    
+
                     console.log("==branches==", branches._id);
                 } else {
                     branchKeyValue = null;

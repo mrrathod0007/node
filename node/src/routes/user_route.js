@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 
 router.post('/adminRegistration',UserController.adminRegister);
 router.post('/adminLogin',UserController.adminLogin);
-router.post('/addBranch',UserController.addBranch);
+router.put('/addBranch',verifyToken,UserController.addBranch);
 router.get('/getBranch',verifyToken,UserController.getBranch);
 router.put('/editBranch',verifyToken,UserController.editBranch);
 router.post('/registration',UserController.register);
