@@ -710,12 +710,19 @@ exports.resetPassword = async (req, res, next) => {
             } else {
                 const { newPassword } = req.body;
                 const user = await AdminUserModel.findOne({ _id: authData._id });
+                const branchUser  = await AdminBranchesModel.findOne({'branches._id': authData._id });
                 console.log('===user===', user);
-                if (!user) {
-                    return res.status(400).json({ error: 'Invalid or expired token' });
+                if(user){
+                    user.password = newPassword;
+                    await user.save();
+                }else{
+                    branchUser.password = newPassword;
+                    await branchUser.save();
                 }
-                user.password = newPassword;
-                await user.save();
+                // if (!user) {
+                //     return res.status(400).json({ error: 'Invalid or expired token' });
+                // }
+                
                 res.status(200).json({ status: true, message: 'Password reset successfully, Now Login with New Password', response: null });
             }
 
