@@ -716,7 +716,7 @@ exports.resetPassword = async (req, res, next) => {
                     user.password = newPassword;
                     await user.save();
                 }else{
-                    branchUser.pass = newPassword;
+                    branchUser.branches.pass = newPassword;
                     await branchUser.save();
                 }
                 // if (!user) {
