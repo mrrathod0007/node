@@ -194,12 +194,15 @@ exports.addBranch = async (req, res, next) => {
                     const branchesRes = await AdminBranchesModel.findOne({ keyValue: keyValue });
                     let resBranch;
                     let resLength = 0;
+                    let reqLength = 0;
                     if(branchesRes){
                         resBranch = branchesRes.branches;
                         resLength = resBranch.length;
                     }
+                   if(branches){
+                    reqLength = branches.length;
+                   }
                    
-                    const reqLength = branches.length;
                     const newLength = resLength + reqLength;
                     console.log("==resLength==", resLength);
                     console.log("==newLength==", newLength);
