@@ -679,11 +679,32 @@ exports.forgotPassword = async (req, res, next) => {
         else {
 
             let user = await UserServices.checkuser(mobileOrPassword);
-            console.log('===user===', user);
+            console.log('===user===', user.branches);
             if (!user) {
                 return res.status(404).json({ status: false, msg: "'User not found'", response: null });
             } else {
-                let tokenData = { _id: user._id, mobile: user.mobile };
+                
+                let id;
+                let tokenData;
+                if(user.branches !== undefined){
+                    if(user.branches.length >0){
+                        for(const value of user.branches)
+                        {
+                            console.log('===value===', value);
+                            if(value.userId === mobileOrPassword)
+                            {
+                                id = value._id;
+                                console.log('===id===', id);
+                            }
+                        }
+                        tokenData = { _id: id, mobile: user.mobile };
+                    }
+                }else{
+                    tokenData = { _id: user._id, mobile: user.mobile };
+                }
+                
+                console.log('===id===', id);
+                
                 const token = await UserServices.generatetoken(tokenData, "secretKey", "1h");
 
                 res.json({ status: true, msg: "Password reset successfully Please Add New Password", response: { token: token } });
@@ -711,12 +732,18 @@ exports.resetPassword = async (req, res, next) => {
                 const { newPassword } = req.body;
                 const user = await AdminUserModel.findOne({ _id: authData._id });
                 const branchUser  = await AdminBranchesModel.findOne({'branches._id': authData._id });
-                console.log('===user===', user);
+                console.log('===user===', branchUser);
                 if(user){
                     user.password = newPassword;
                     await user.save();
                 }else{
-                    branchUser.branches.pass = newPassword;
+                    let branches;
+                    for(const value of branchUser.branches){
+                        console.log('===value===', value);
+                        branches = value;
+                    }
+                    
+                    branches.pass = newPassword;
                     await branchUser.save();
                 }
                 // if (!user) {
