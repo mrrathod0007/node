@@ -221,7 +221,8 @@ exports.addBranch = async (req, res, next) => {
                         }
                         if (isExist) {
                             console.log('=isExist true==', isExist);
-                            res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
+                            // throw Error(`${branchuserIdFromLoop} UserId is Allready Register`);
+                            return res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
 
                         }else{
                             for (const value of branches) {
@@ -1262,7 +1263,7 @@ exports.getInvoice = async (req, res, next) => {
                 const formattedEndDate = new Date(endDate);
                 formattedEndDate.setDate(formattedEndDate.getDate() + 1);
 
-                console.log("==tableId==", tableId);
+                console.log("==tableId==", branchName);
                 let existingInvoices;
                 const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue, 'branches.branchName': branchName });
                 let branchKeyValue;
@@ -1278,7 +1279,7 @@ exports.getInvoice = async (req, res, next) => {
                 } else {
                     branchKeyValue = null;
                 }
-                console.log("==branchKeyValue==", branchKeyValue !== undefined ? branchKeyValue : keyValue);
+                console.log("==branchKeyValue==", branchKeyValue !== null ? branchKeyValue : keyValue);
                 if (tableId !== undefined) {
                     existingInvoices = await Invoice.find({
                         keyValue: branchKeyValue !== null ? branchKeyValue : keyValue,

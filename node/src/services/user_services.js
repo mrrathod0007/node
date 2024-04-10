@@ -771,7 +771,11 @@ class UserServices {
         //     this.generateHr(doc, position + 20);
         // }
 
-        const subtotalPosition = position;
+        let subtotalPosition = position;
+        if (subtotalPosition > doc.page.height - 50) {
+            doc.addPage();
+            subtotalPosition = 30;
+        }
         this.generateTableRow(
             doc,
             subtotalPosition,
@@ -782,8 +786,11 @@ class UserServices {
             totalInvoicePrice
         );
 
-        const cgstPosition = subtotalPosition + 20;
-
+        let cgstPosition = subtotalPosition + 20;
+        if (cgstPosition > doc.page.height - 50) {
+            doc.addPage();
+            cgstPosition = 30;
+        }
 
         let gst;
         if (invoice[0].table[0].gst[0] > 0.00) {
@@ -804,7 +811,12 @@ class UserServices {
             "",
             ((gst))
         );
-        const sgstPosition = cgstPosition + 30;
+        let sgstPosition = cgstPosition + 30;
+        if (sgstPosition > doc.page.height - 50) {
+            doc.addPage();
+            sgstPosition = 30;
+        }
+        
         this.generateTableRowforgst(
             doc,
             sgstPosition,
@@ -815,7 +827,11 @@ class UserServices {
             ((gst))
         );
         let totalBill = ((totalInvoicePrice) + (gst) + (gst));
-        const duePosition = sgstPosition + 25;
+        let duePosition = sgstPosition + 25;
+        if (duePosition > doc.page.height - 50) {
+            doc.addPage();
+            duePosition = 30;
+        }
         doc.font("Helvetica-Bold");
         this.generateTableRow(
             doc,
