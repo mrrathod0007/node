@@ -1211,14 +1211,14 @@ exports.addInvoice = async (req, res, next) => {
                             table: responseTable
 
                         };
-                        // const index = abc.length;
-                        // // console.log('===abc===',abc[(index-1)]);
-                        // const forPdfInvoice = {
-                        //     no: existingInvoice.no,
-                        //     date: existingInvoice.date,
-                        //     table: abc[(index - 1)]
-                        // }
-                        const invoicePdf = await UserServices.craetePDF(keyValue, responseInvoice, req.headers.host);
+                        const index = table.length;
+                        // console.log('===abc===',abc[(index-1)]);
+                        const forPdfInvoice = {
+                            no: responseInvoice.no,
+                            date: responseInvoice.date,
+                            table: responseTable[0]
+                        }
+                        const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
                         const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
                         if (deletedOrder) {
                             console.log("==tableOrder Deleted==");
