@@ -1271,8 +1271,9 @@ exports.getInvoice = async (req, res, next) => {
                 if (branchUser !== null) {
                     branches = branchUser.branches;
                     for (const value of branches) {
+                        if(value.branchName  === branchName){
                         console.log("==value==", value._id);
-                        branchKeyValue = `${value._id}`;
+                        branchKeyValue = `${value._id}`;}
                     }
 
                     console.log("==branches==", branches._id);

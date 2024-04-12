@@ -467,7 +467,7 @@ class UserServices {
 
     static async generateHeader(doc) {
         doc
-            .image(("icon.png"), 50, 45, { width: 50 })
+            .image(("node/icon.png"), 50, 45, { width: 50 })
             .fillColor("#444444")
             .fontSize(20)
             .text("MY SHOP", 110, 57)
