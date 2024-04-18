@@ -104,7 +104,8 @@ class UserServices {
                                     user.lastExpiry = user.nextExpiry;
                                     user.nextExpiry = 0;
                                     const newUser = await user.save();
-                                    return newToken;
+                                    decodedToken = jwt.verify(newToken, secretKey);
+                                    // return newToken;
                                     //  newToken = newToken;
                                 }
 

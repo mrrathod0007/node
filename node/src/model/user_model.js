@@ -136,10 +136,25 @@ const menuSchema = new Schema({
         type: String,
         required: true
     },
-    item: [{
-        type: String,
-        required: true
-    }],
+    item: [
+        {
+            itemName:{
+                type: String,
+                required: true
+            },
+            extraNote:{
+                note :[{
+                    type:String,
+                    require: true
+                }],
+                exPrice:[{
+                    type: Number,
+                    required: true
+                }]
+            }
+
+        }
+    ],
     price: [{
         type: Number,
         required: true
@@ -147,7 +162,8 @@ const menuSchema = new Schema({
     qty: [{
         type: Number,
         required: true
-    }]
+    }],
+    
 });
 
 const invoiceSchema = new Schema({
@@ -226,10 +242,25 @@ const keepOrderSchema = new Schema({
             type: String,
             required: true
         },
-        item: [{
-            type: String,
-            required: true
-        }],
+        item: [
+            {
+                itemName:{
+                    type: String,
+                    required: true
+                },
+                extraNote:{
+                    note :[{
+                        type:String,
+                        require: true
+                    }],
+                    exPrice:[{
+                        type: Number,
+                        required: true
+                    }]
+                }
+    
+            }
+        ],
         price: [{
             type: Number,
             required: true
@@ -237,7 +268,7 @@ const keepOrderSchema = new Schema({
         qty: [{
             type: Number,
             required: true
-        }]
+        }],
     }]
 
 

@@ -7,6 +7,7 @@ router.post('/adminLogin',UserController.adminLogin);
 router.put('/addBranch',verifyToken,UserController.addBranch);
 router.get('/getBranch',verifyToken,UserController.getBranch);
 router.put('/editBranch',verifyToken,UserController.editBranch);
+router.delete('/deleteBranch',verifyToken,UserController.deleteBranch);
 router.post('/registration',UserController.register);
 router.post('/login',UserController.login);
 router.post('/forgot-password',UserController.forgotPassword);

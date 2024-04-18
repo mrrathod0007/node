@@ -191,7 +191,7 @@ exports.addBranch = async (req, res, next) => {
 
                     const keyValue = await authData._id;
                     const { branches } = req.body;
-                    const branchesRes = await AdminBranchesModel.findOne({ keyValue: keyValue });
+                    let branchesRes = await AdminBranchesModel.findOne({ keyValue: keyValue });
                     let resBranch;
                     let resLength = 0;
                     let reqLength = 0;
@@ -225,15 +225,20 @@ exports.addBranch = async (req, res, next) => {
                             return res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
 
                         }else{
-                            for (const value of branches) {
-                                branchesRes.branches.push({
-                                    branchName: value.branchName,
-                                    userId: value.userId,
-                                    pass: value.pass
-                                });
+                            if(branchesRes){
+                                for (const value of branches) {
+                                    branchesRes.branches.push({
+                                        branchName: value.branchName,
+                                        userId: value.userId,
+                                        pass: value.pass
+                                    });
+                                }
+        
+                                console.log("==branches==", branches);
+                            }else{
+                                branchesRes = await UserServices.adminBranches(authData._id, branches);
                             }
-    
-                            console.log("==branches==", branches);
+                            
                         }
                       
                     }
@@ -389,6 +394,50 @@ exports.editBranch = async (req, res, next) => {
 
 
 }
+
+exports.deleteBranch = async (req, res, next) => {
+    const isValidToken = await UserServices.checkToken(req.token);
+    if (isValidToken) {
+        jwt.verify(req.token, secretKey, async (error, authData) => {
+            if (error) {
+                res.json({
+                    status: false,
+                    msg: "Token Invalid"
+                });
+            } else {
+                const keyValue = authData._id;
+                const { id } = req.body;
+
+                try {
+
+                    const deletedBranch = await AdminBranchesModel.updateOne(
+                        { keyValue: keyValue },
+                        { $pull: { branches: { _id: id } } }
+                      );
+                    
+                    
+                    
+                    // .findOneAndDelete({ 'branches._id': id, keyValue: keyValue });
+
+                    if (deletedBranch) {
+                        res.status(200).json({ status: true, msg: "Branch deleted successfully", response: null });
+                    } else {
+                        res.status(404).json({ status: false, msg: "Branch not found", response: null });
+                    }
+                } catch (error) {
+                    console.error(error);
+                    res.status(500).json({ status: false, msg: "Internal Server Error" });
+                }
+            }
+        });
+    } else {
+        res.status(200).json({
+            status: false,
+            msg: "Your Subscription Expire Please Contect Admin",
+            response: null
+        });
+    }
+};
 exports.login = async (req, res, next) => {
     try {
         const { mobileOrPassword, password } = req.body;
@@ -875,6 +924,7 @@ exports.addMenu = async (req, res, next) => {
 
                         const keyValue = await authData._id;
                         const menu = new Menu(req.body);
+                        console.log("=====Extra menu====",menu);
                         const list = await Menu.find({ keyValue: `${keyValue}`, categoriesType: menu.categoriesType });
                         console.log("=====list====", menu.categoriesType.toLowerCase);
                         if (list.length !== 0) {
@@ -940,7 +990,7 @@ exports.getMenu = async (req, res, next) => {
                         } else {
                             list = await Menu.find({ keyValue: `${keyValue}` });
                         }
-
+                        console.log("=====list======", list);
 
                         if (list.length === 0) {
                             res.json({ status: false, msg: "Menu List Not Found", response: null });
@@ -948,10 +998,15 @@ exports.getMenu = async (req, res, next) => {
                             const menuList = list.map(menu => ({
                                 id: menu._id,
                                 categoriesType: menu.categoriesType,
-                                item: menu.item,
+                                item: menu.item.map(items => ({
+                                    itemName: items.itemName,
+                                    extraNote: items.extraNote
+                                })),
                                 price: menu.price,
-                                qty: menu.qty
+                                qty: menu.qty,
+                                
                             }));
+                            
                             // const tableId = menu.id;
                             // const successRes = await UserServices.addMenu(`${keyValue}`, menu);
                             // const newMenu = await Menu.findOne({ keyValue: keyValue });
@@ -999,7 +1054,7 @@ exports.updateCategory = async (req, res, next) => {
 
                         const keyValue = await authData._id;
                         const data = req.body;
-                        const { id, categoriesType, item, price, qty } = req.body;
+                        const { id, categoriesType, item, price, qty,extraNote } = req.body;
                         const list = await Menu.findOne({ keyValue: `${keyValue}`, _id: data.id });
                         console.log("=====menuList====", data.item);
                         if (list === null) {
@@ -1012,6 +1067,7 @@ exports.updateCategory = async (req, res, next) => {
                             }
                             if (data.item !== undefined) {
                                 list.item = item;
+                               
                             } else {
                                 list.item = list.item;
                             }
@@ -1025,13 +1081,18 @@ exports.updateCategory = async (req, res, next) => {
                             } else {
                                 list.qty = list.qty;
                             }
+                            if (data.extraNote !== undefined) {
+                                list.extraNote = extraNote;
+                            } else {
+                                list.extraNote = list.extraNote;
+                            }
                             const newList = await list.save();
                             const menuList = {
                                 id: newList._id,
                                 categoriesType: newList.categoriesType,
                                 item: newList.item,
                                 price: newList.price,
-                                qty: newList.qty
+                                qty: newList.qty,
                             };
                             console.log("=====menuList====", menuList);
                             res.json({ status: true, msg: "Menu Update Successful", response: null });
@@ -1393,6 +1454,7 @@ exports.keepOrder = async (req, res, next) => {
                 const keyValue = authData._id;
 
                 const { tableId, menuList } = req.body;
+                console.log("menuAdded===",menuList);
                 const newMenuList = {
                     keyValue: keyValue,
                     tableId: tableId,
@@ -1452,9 +1514,12 @@ exports.getKeepOrder = async (req, res, next) => {
                         return {
                             id: value._id,
                             categoriesType: value.categoriesType,
-                            item: value.item,
+                            item: value.item.map(items => ({
+                                itemName: items.itemName,
+                                extraNote: items.extraNote
+                            })),
                             price: value.price,
-                            qty: value.qty
+                            qty: value.qty,
                         };
                     });
                     res.status(200).json({ status: true, msg: "Menu get successful", response: { menuList } });
