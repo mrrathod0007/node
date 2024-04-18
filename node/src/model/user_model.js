@@ -140,16 +140,13 @@ const menuSchema = new Schema({
         {
             itemName:{
                 type: String,
-                required: true
             },
             extraNote:{
                 note :[{
                     type:String,
-                    require: true
                 }],
                 exPrice:[{
                     type: Number,
-                    required: true
                 }]
             }
 
@@ -157,11 +154,9 @@ const menuSchema = new Schema({
     ],
     price: [{
         type: Number,
-        required: true
     }],
     qty: [{
         type: Number,
-        required: true
     }],
     
 });
