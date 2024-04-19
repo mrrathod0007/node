@@ -1173,8 +1173,9 @@ exports.addInvoice = async (req, res, next) => {
                 const month = String(currentDate.getMonth() + 1).padStart(2, '0');
                 const year = currentDate.getFullYear();
                 const formattedDate = `${day}/${month}/${year}`;
-                const { tableId, customerName, customerMobile, tableMember, items, price, qty, subTotal, gst, total } = req.body;
+                const { tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total } = req.body;
                 const date = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
+                console.log("==note==",note);
                 const table = [{
                     billNumber: "ABC123",
                     tableId: tableId,
@@ -1182,6 +1183,7 @@ exports.addInvoice = async (req, res, next) => {
                     customerMobile: customerMobile,
                     tableMember: tableMember,
                     items: items,
+                    note:note,
                     price: price,
                     qty: qty,
                     subTotal: subTotal,
@@ -1358,13 +1360,14 @@ exports.getInvoice = async (req, res, next) => {
                     const invoice = responseInvoices.map(invoice => ({
                         id: invoice.id,
                         date: invoice.date,
-                        table: invoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, price, qty, subTotal, gst, total }) => ({
+                        table: invoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note,price, qty, subTotal, gst, total }) => ({
                             billNumber,
                             tableId,
                             customerName,
                             customerMobile,
                             tableMember,
                             items,
+                            note,
                             price,
                             qty,
                             subTotal,
@@ -1397,12 +1400,13 @@ exports.getInvoice = async (req, res, next) => {
                         const invoice = existingInvoices.map(invoice => ({
                             id: invoice.id,
                             date: invoice.date,
-                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items, price, qty, subTotal, gst, total }) => ({
+                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items,note, price, qty, subTotal, gst, total }) => ({
                                 tableId,
                                 customerName,
                                 customerMobile,
                                 tableMember,
                                 items,
+                                note,
                                 price,
                                 qty,
                                 subTotal,

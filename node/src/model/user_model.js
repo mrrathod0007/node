@@ -198,6 +198,25 @@ const invoiceSchema = new Schema({
                 type: String,
                 required: true
             }],
+            note: [
+                {
+                    itemName:{
+                        type: String,
+                        required: true
+                    },
+                    extraNote:{
+                        note :[{
+                            type:String,
+                            require: true
+                        }],
+                        exPrice:[{
+                            type: Number,
+                            required: true
+                        }]
+                    }
+        
+                }
+            ],
             price: [{
                 type: Number,
                 required: true

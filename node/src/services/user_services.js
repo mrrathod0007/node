@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const jwt = require("jsonwebtoken");
 const handlebars = require('handlebars');
+const { Console } = require("console");
 
 class UserServices {
     static async adminRegister(userName, mobile, password) {
@@ -506,9 +507,9 @@ class UserServices {
             .text("Invoice Date:", 50, customerInformationTop + 15)
             .text(invoice.date, 150, customerInformationTop + 15)
             .font("Helvetica-Bold")
-            .text("Total:", 50, customerInformationTop + 30)
-            .font("Helvetica-Bold")
-            .text((totalInvoice.toFixed(2)), 150, customerInformationTop + 30)
+            // .text("Total:", 50, customerInformationTop + 30)
+            // .font("Helvetica-Bold")
+            // .text((totalInvoice.toFixed(2)), 150, customerInformationTop + 30)
 
             .font("Helvetica-Bold")
             .text("Customer Name:", 300, customerInformationTop)
@@ -545,7 +546,11 @@ class UserServices {
             for (let u = 0; u < invoice[i].table.length; u++) {
                 console.log('== item == ', invoice[i].table[u]);
                 for (let y = 0; y < invoice[i].table[u].items.length; y++) {
-                    const totalPrice = ((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y]));
+                    let extraPrice = 0;
+                    for(let p =0; p < invoice[i].table[u].note[y].extraNote.exPrice.length;p++ ){
+                        extraPrice +=invoice[i].table[u].note[y].extraNote.exPrice[p];
+                    }
+                    const totalPrice = (((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y])) + extraPrice);
                     totalInvoice += totalPrice;
                 }
             }
@@ -591,44 +596,60 @@ class UserServices {
     }
     static async generateInvoiceTable(doc, invoice) {
         let i;
+        let u;
         const invoiceTableTop = 330;
 
         doc.font("Helvetica-Bold");
-        this.generateTableRow(
+        this.extraNoteTableRow(
             doc,
             invoiceTableTop,
             "Sr.No",
             "Items",
             "Unit Cost",
             "Quantity",
+            "Extra Cost",
             "Line Total"
         );
         this.generateHr(doc, invoiceTableTop + 20);
         doc.font("Helvetica");
         let totalInvoicePrice = 0;
+        
+        
         for (i = 0; i < invoice.table.items.length; i++) {
+            let extraPrice = 0;
+            let extraNote;
+            for( u = 0; u <invoice.table.note[i].extraNote.note.length; u++){
+                if(extraNote !== undefined){
+                    extraNote = `${extraNote},`+`${invoice.table.note[i].extraNote.note[u]}`;
+                }else{
+                    extraNote = invoice.table.note[i].extraNote.note[u];
+                }
+                extraPrice += invoice.table.note[i].extraNote.exPrice[u];
+            }
+            
             const item = (i + 1);
             const description = invoice.table.items[i];
             const price = invoice.table.price[i];
             const qty = invoice.table.qty[i];
-            const totalPrice = ((invoice.table.qty[i]) * (invoice.table.price[i]));
+            const totalPrice = (((invoice.table.qty[i]) * (invoice.table.price[i]))+ (extraPrice));
             totalInvoicePrice += totalPrice;
 
+            console.log('====extra for pdf===', extraNote,extraPrice,totalInvoicePrice);
             const position = invoiceTableTop + (i + 1) * 30;
-            this.generateTableRow(
+            this.extraNoteTableRow(
                 doc,
                 position,
                 item,
-                description,
+                `${description  }`+`( Extra : ${extraNote})`,
                 price,
                 qty,
+                extraPrice,
                 totalPrice
                 // formatCurrency(item.amount)
             );
 
             this.generateHr(doc, position + 20);
         }
-
         const subtotalPosition = invoiceTableTop + (i + 1) * 30;
         this.generateTableRow(
             doc,
@@ -690,6 +711,7 @@ class UserServices {
         let i;
         let u;
         let y;
+        let p;
         let x = 0;
         let position = 360;
         const invoiceTableTop = 330;
@@ -704,6 +726,7 @@ class UserServices {
             "Items",
             "Unit Cost",
             "Quantity",
+            "Extra Cost",
             "Line Total"
         );
         this.generateHr(doc, invoiceTableTop + 20);
@@ -712,13 +735,17 @@ class UserServices {
         for ( i = 0; i < invoice.length; i++) {
             for ( u = 0; u < invoice[i].table.length; u++) {
                 for ( y = 0; y < invoice[i].table[u].items.length; y++) {
+                let extraPrice = 0;
+                for(p =0; p < invoice[i].table[u].note[y].extraNote.exPrice.length;p++ ){
+                    extraPrice +=invoice[i].table[u].note[y].extraNote.exPrice[p];
+                }
                     const item = (x + 1);
                     const date = invoice[i].date;
                     const tableNo = invoice[i].table[u].tableId;
                     const description = invoice[i].table[u].items[y];
                     const price = invoice[i].table[u].price[y];
                     const qty = invoice[i].table[u].qty[y];
-                    const totalPrice = ((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y]));
+                    const totalPrice = ((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y]) + extraPrice );
                     totalInvoicePrice += totalPrice;
                     // const position = invoiceTableTop + ( x + 1) * 30;
                     if (position > doc.page.height - 50) {
@@ -737,6 +764,7 @@ class UserServices {
                         description,
                         price,
                         qty,
+                        extraPrice,
                         totalPrice
                         // formatCurrency(item.amount)
                     );
@@ -875,6 +903,26 @@ class UserServices {
             .text(quantity, 370, y, { width: 90, align: "right" })
             .text(lineTotal, 0, y, { align: "right" });
     }
+
+    static async extraNoteTableRow(
+        doc,
+        y,
+        item,
+        description,
+        unitCost,
+        quantity,
+        extraPrice,
+        lineTotal
+    ) {
+        doc
+            .fontSize(10)
+            .text(item, 50, y)
+            .text(description, 100, y)
+            .text(unitCost, 150, y, { width: 90, align: "right" })
+            .text(quantity, 240, y, { width: 90, align: "right" })
+            .text(extraPrice, 370, y, { width: 90, align: "right" })
+            .text(lineTotal, 0, y, { align: "right" });
+    }
     static async generateTableRowforgst(
         doc,
         y,
@@ -902,6 +950,7 @@ class UserServices {
         description,
         unitCost,
         quantity,
+        extraCost,
         lineTotal
     ) {
         doc
@@ -909,9 +958,10 @@ class UserServices {
             .text(item, 30, y)
             .text(date, 80, y)
             .text(tableNo, 130, y,{width: 50,align: "center" })
-            .text(description, 200, y,{width: 90,align: "center" })
-            .text(unitCost, 280, y, { width: 90, align: "center" })
-            .text(quantity, 370, y, { width: 90, align: "center" })
+            .text(description, 180, y,{width: 90,align: "center" })
+            .text(unitCost, 270, y, { width: 50, align: "center" })
+            .text(quantity, 320, y, { width: 50, align: "center" })
+            .text(extraCost, 370, y, { width: 90, align: "center" })
             .text(lineTotal, 480, y, { align: "center" });
     }
 
