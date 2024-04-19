@@ -254,6 +254,7 @@ class UserServices {
                     const lastExpiry = 1;
                     const nextExpiry = 0;
                     const newLogin = await Login.create({ keyValue, mobileOrPassword, password, token, lastExpiry, nextExpiry });
+                    return newLogin;
                 }
             }
             if (adminUser) {

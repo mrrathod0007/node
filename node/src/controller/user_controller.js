@@ -139,7 +139,7 @@ exports.adminLogin = async (req, res, next) => {
                         const tokenExpire = 365 * 24 * 60 * 60;
                         const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", branchId);
                         const keyValue = branchId;
-                        await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
+                        const responseLog = await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
 
                         res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: false } });
                     }
@@ -161,7 +161,7 @@ exports.adminLogin = async (req, res, next) => {
             const tokenExpire = 365 * 24 * 60 * 60;
             const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", user._id);
             const keyValue = user._id;
-            await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
+           const responseLog =  await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
 
             res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: user.isAdmin } });
         }
@@ -1094,7 +1094,7 @@ exports.updateCategory = async (req, res, next) => {
                                 price: newList.price,
                                 qty: newList.qty,
                             };
-                            console.log("=====menuList====", menuList);
+                            console.log("=====object====", menuList);
                             res.json({ status: true, msg: "Menu Update Successful", response: null });
                         }
 
