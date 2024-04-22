@@ -1,5 +1,5 @@
 const UserServices = require("../services/user_services");
-const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf } = require("../model/user_model");
+const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf, Profile } = require("../model/user_model");
 const jwt = require("jsonwebtoken");
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
@@ -162,7 +162,7 @@ exports.adminLogin = async (req, res, next) => {
             const tokenExpire = 365 * 24 * 60 * 60;
             const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", user._id);
             const keyValue = user._id;
-           const responseLog =  await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
+            const responseLog = await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
 
             res.status(200).json({ status: true, msg: "User Login Successful", response: { token: token, isAdmin: user.isAdmin } });
         }
@@ -196,14 +196,14 @@ exports.addBranch = async (req, res, next) => {
                     let resBranch;
                     let resLength = 0;
                     let reqLength = 0;
-                    if(branchesRes){
+                    if (branchesRes) {
                         resBranch = branchesRes.branches;
                         resLength = resBranch.length;
                     }
-                   if(branches){
-                    reqLength = branches.length;
-                   }
-                   
+                    if (branches) {
+                        reqLength = branches.length;
+                    }
+
                     const newLength = resLength + reqLength;
                     console.log("==resLength==", resLength);
                     console.log("==newLength==", newLength);
@@ -225,8 +225,8 @@ exports.addBranch = async (req, res, next) => {
                             // throw Error(`${branchuserIdFromLoop} UserId is Allready Register`);
                             return res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
 
-                        }else{
-                            if(branchesRes){
+                        } else {
+                            if (branchesRes) {
                                 for (const value of branches) {
                                     branchesRes.branches.push({
                                         branchName: value.branchName,
@@ -234,32 +234,32 @@ exports.addBranch = async (req, res, next) => {
                                         pass: value.pass
                                     });
                                 }
-        
+
                                 console.log("==branches==", branches);
-                            }else{
+                            } else {
                                 branchesRes = await UserServices.adminBranches(authData._id, branches);
                             }
-                            
+
                         }
-                      
+
                     }
                     const response = await branchesRes.save();
-                 
-                        console.log("==log==", response);
-                        const getAllBranches = await AdminBranchesModel.find({ keyValue: `${keyValue}` });
-                        if (getAllBranches.length !== 0) {
-                            let abc;
-                            for (const value of getAllBranches) {
-                                abc = value.branches;
-                            }
-                            const filteredBranches = abc.map(obj => ({
-                                branchName: obj.branchName,
-                                userId: obj.userId,
-                                id: obj._id
-                            }))
+
+                    console.log("==log==", response);
+                    const getAllBranches = await AdminBranchesModel.find({ keyValue: `${keyValue}` });
+                    if (getAllBranches.length !== 0) {
+                        let abc;
+                        for (const value of getAllBranches) {
+                            abc = value.branches;
+                        }
+                        const filteredBranches = abc.map(obj => ({
+                            branchName: obj.branchName,
+                            userId: obj.userId,
+                            id: obj._id
+                        }))
                         return res.status(200).json({ status: true, msg: "Branch added", response: { branches: filteredBranches } });
                     }
-                 
+
 
                 }
             });
@@ -414,10 +414,10 @@ exports.deleteBranch = async (req, res, next) => {
                     const deletedBranch = await AdminBranchesModel.updateOne(
                         { keyValue: keyValue },
                         { $pull: { branches: { _id: id } } }
-                      );
-                    
-                    
-                    
+                    );
+
+
+
                     // .findOneAndDelete({ 'branches._id': id, keyValue: keyValue });
 
                     if (deletedBranch) {
@@ -734,28 +734,26 @@ exports.forgotPassword = async (req, res, next) => {
             if (!user) {
                 return res.status(404).json({ status: false, msg: "'User not found'", response: null });
             } else {
-                
+
                 let id;
                 let tokenData;
-                if(user.branches !== undefined){
-                    if(user.branches.length >0){
-                        for(const value of user.branches)
-                        {
+                if (user.branches !== undefined) {
+                    if (user.branches.length > 0) {
+                        for (const value of user.branches) {
                             console.log('===value===', value);
-                            if(value.userId === mobileOrPassword)
-                            {
+                            if (value.userId === mobileOrPassword) {
                                 id = value._id;
                                 console.log('===id===', id);
                             }
                         }
                         tokenData = { _id: id, mobile: user.mobile };
                     }
-                }else{
+                } else {
                     tokenData = { _id: user._id, mobile: user.mobile };
                 }
-                
+
                 console.log('===id===', id);
-                
+
                 const token = await UserServices.generatetoken(tokenData, "secretKey", "1h");
 
                 res.json({ status: true, msg: "Password reset successfully Please Add New Password", response: { token: token } });
@@ -782,25 +780,25 @@ exports.resetPassword = async (req, res, next) => {
             } else {
                 const { newPassword } = req.body;
                 const user = await AdminUserModel.findOne({ _id: authData._id });
-                const branchUser  = await AdminBranchesModel.findOne({'branches._id': authData._id });
+                const branchUser = await AdminBranchesModel.findOne({ 'branches._id': authData._id });
                 console.log('===user===', branchUser);
-                if(user){
+                if (user) {
                     user.password = newPassword;
                     await user.save();
-                }else{
+                } else {
                     let branches;
-                    for(const value of branchUser.branches){
+                    for (const value of branchUser.branches) {
                         console.log('===value===', value);
                         branches = value;
                     }
-                    
+
                     branches.pass = newPassword;
                     await branchUser.save();
                 }
                 // if (!user) {
                 //     return res.status(400).json({ error: 'Invalid or expired token' });
                 // }
-                
+
                 res.status(200).json({ status: true, message: 'Password reset successfully, Now Login with New Password', response: null });
             }
 
@@ -925,7 +923,7 @@ exports.addMenu = async (req, res, next) => {
 
                         const keyValue = await authData._id;
                         const menu = new Menu(req.body);
-                        console.log("=====Extra menu====",menu);
+                        console.log("=====Extra menu====", menu);
                         const list = await Menu.find({ keyValue: `${keyValue}`, categoriesType: menu.categoriesType });
                         console.log("=====list====", menu.categoriesType.toLowerCase);
                         if (list.length !== 0) {
@@ -1005,9 +1003,9 @@ exports.getMenu = async (req, res, next) => {
                                 })),
                                 price: menu.price,
                                 qty: menu.qty,
-                                
+
                             }));
-                            
+
                             // const tableId = menu.id;
                             // const successRes = await UserServices.addMenu(`${keyValue}`, menu);
                             // const newMenu = await Menu.findOne({ keyValue: keyValue });
@@ -1055,7 +1053,7 @@ exports.updateCategory = async (req, res, next) => {
 
                         const keyValue = await authData._id;
                         const data = req.body;
-                        const { id, categoriesType, item, price, qty,extraNote } = req.body;
+                        const { id, categoriesType, item, price, qty, extraNote } = req.body;
                         const list = await Menu.findOne({ keyValue: `${keyValue}`, _id: data.id });
                         console.log("=====menuList====", data.item);
                         if (list === null) {
@@ -1068,7 +1066,7 @@ exports.updateCategory = async (req, res, next) => {
                             }
                             if (data.item !== undefined) {
                                 list.item = item;
-                               
+
                             } else {
                                 list.item = list.item;
                             }
@@ -1176,7 +1174,7 @@ exports.addInvoice = async (req, res, next) => {
                 const formattedDate = `${day}/${month}/${year}`;
                 const { tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total } = req.body;
                 const date = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
-                console.log("==note==",note);
+                console.log("==note==", note);
                 const table = [{
                     billNumber: "ABC123",
                     tableId: tableId,
@@ -1184,7 +1182,7 @@ exports.addInvoice = async (req, res, next) => {
                     customerMobile: customerMobile,
                     tableMember: tableMember,
                     items: items,
-                    note:note,
+                    note: note,
                     price: price,
                     qty: qty,
                     subTotal: subTotal,
@@ -1198,7 +1196,7 @@ exports.addInvoice = async (req, res, next) => {
                 if (existingInvoice) {
 
                     const abc = await existingInvoice.addItemsToInvoice(table);
-                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items,note, price, qty, subTotal, gst, total }) => ({
+                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
                         billNumber,
                         tableId,
                         customerName,
@@ -1256,7 +1254,7 @@ exports.addInvoice = async (req, res, next) => {
                         });
 
                         const savedInvoice = await newInvoice.save();
-                        const responseTable = savedInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items,note, price, qty, subTotal, gst, total }) => ({
+                        const responseTable = savedInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
                             billNumber,
                             tableId,
                             customerName,
@@ -1337,9 +1335,10 @@ exports.getInvoice = async (req, res, next) => {
                 if (branchUser !== null) {
                     branches = branchUser.branches;
                     for (const value of branches) {
-                        if(value.branchName  === branchName){
-                        console.log("==value==", value._id);
-                        branchKeyValue = `${value._id}`;}
+                        if (value.branchName === branchName) {
+                            console.log("==value==", value._id);
+                            branchKeyValue = `${value._id}`;
+                        }
                     }
 
                     console.log("==branches==", branches._id);
@@ -1363,7 +1362,7 @@ exports.getInvoice = async (req, res, next) => {
                     const invoice = responseInvoices.map(invoice => ({
                         id: invoice.id,
                         date: invoice.date,
-                        table: invoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note,price, qty, subTotal, gst, total }) => ({
+                        table: invoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
                             billNumber,
                             tableId,
                             customerName,
@@ -1403,7 +1402,7 @@ exports.getInvoice = async (req, res, next) => {
                         const invoice = existingInvoices.map(invoice => ({
                             id: invoice.id,
                             date: invoice.date,
-                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items,note, price, qty, subTotal, gst, total }) => ({
+                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
                                 tableId,
                                 customerName,
                                 customerMobile,
@@ -1461,7 +1460,7 @@ exports.keepOrder = async (req, res, next) => {
                 const keyValue = authData._id;
 
                 const { tableId, menuList } = req.body;
-                console.log("menuAdded===",menuList);
+                console.log("menuAdded===", menuList);
                 const newMenuList = {
                     keyValue: keyValue,
                     tableId: tableId,
@@ -1556,45 +1555,238 @@ exports.profileUpdate = async (req, res, next) => {
                 });
             } else {
                 const keyValue = authData._id;
-                const { imageLogo,  } = req.body;
-                const baseUrl = req.headers.host;
-                let imageUrl = '';
-                const getAdminUser = await AdminUserModel.find({ keyValue: keyValue});
-               if(getAdminUser){
-                let imageBase64 = imageLogo;
-                const base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-                const imageName = 'uuidv4' + '.png';
-                const imageFolderPath = path.join(__dirname, '..', 'profileLogo');
-                if (!fs.existsSync(imageFolderPath)) {
-                    fs.mkdirSync(imageFolderPath);
-                }
-                const imagePath = path.join(imageFolderPath, imageName);
-                const buffer = Buffer.from(base64Image, 'base64');
-                
-                fs.writeFile(imagePath, buffer, (err) => {
-                    console.log('==image path===',imagePath );
+                const savedProfile = await Profile.findOne({ keyValue: keyValue });
+                if (savedProfile) {
 
-                    if (err) {
-                        console.error(err);
-                        res.status(500).json('Error uploading image');
+                    const currentDate = new Date();
+                    const year = currentDate.getFullYear();
+                    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+                    const day = currentDate.getDate().toString().padStart(2, '0');
+                    const hours = currentDate.getHours().toString().padStart(2, '0');
+                    const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+                    const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+                    // Construct the date and time strings
+                    const currentDateStr = `${day}${month}${year}`;
+                    const currentTimeStr = `${hours}${minutes}${seconds}`;
+                    const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
+
+                    const { profileLogo, shopName, mobileNumber, street, city, state, pinCode } = req.body;
+
+                    const baseUrl = req.headers.host;
+                    let imageUrl = '';
+                    let imageFolderPath;
+                    let base64Image;
+                    const getAdminUser = await AdminUserModel.find({ keyValue: keyValue });
+                    if (getAdminUser) {
+                        console.log('==profileLogo===', profileLogo);
+
+
+                        if (profileLogo !== undefined) {
+                            let imageBase64 = profileLogo;
+                             base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                            const imageName = `${invoiceDateandTime}` + '.png';
+                            imageFolderPath = path.join(__dirname, '..', 'profileLogo');
+                            savedProfile.imageFolderPath = imageFolderPath;
+
+                        } else {
+                            savedProfile.imageFolderPath = savedProfile.imageFolderPath;
+                        }
+                        if (shopName !== undefined) {
+                            savedProfile.shopName = shopName;
+                        } else {
+                            savedProfile.shopName = savedProfile.shopName;
+                        }
+                        if (mobileNumber !== undefined) {
+                            savedProfile.mobileNumber = mobileNumber;
+                        } else {
+                            savedProfile.mobileNumber = savedProfile.mobileNumber;
+                        }
+                        if (street !== undefined) {
+                            savedProfile.street = street;
+                        } else {
+                            savedProfile.street = savedProfile.street;
+                        }
+                        if (city !== undefined) {
+                            savedProfile.city = city;
+                        } else {
+                            savedProfile.city = savedProfile.city;
+                        }
+                        if (state !== undefined) {
+                            savedProfile.state = state;
+                        } else {
+                            savedProfile.state = savedProfile.state;
+                        }
+                        if (pinCode !== undefined) {
+                            savedProfile.pinCode = pinCode;
+                        } else {
+                            savedProfile.pinCode = savedProfile.pinCode;
+                        }
+
+                        const updatedProfile = await savedProfile.save();
+                        if (!fs.existsSync(imageFolderPath)) {
+                            fs.mkdirSync(imageFolderPath);
+                        }
+                        const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
+                        const buffer = Buffer.from(base64Image, 'base64');
+
+                        fs.writeFile(imagePath, buffer, (err) => {
+                            console.log('==image path===', updatedProfile.imageFolderPath);
+
+                            if (err) {
+                                console.error(err);
+                                res.status(500).json('Error uploading image');
+                            } else {
+                                console.log('==image path===', updatedProfile.imageName);
+                                // Construct the URL for the image
+
+                                imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
+
+                                const profile = {
+                                    shopName: updatedProfile.shopName,
+                                    profileLogo: imageUrl,
+                                    mobile: updatedProfile.mobileNumber,
+                                    street: updatedProfile.street,
+                                    city: updatedProfile.city,
+                                    state: updatedProfile.state,
+                                    pinCode: updatedProfile.pinCode
+
+                                };
+                                res.status(200).json({
+                                    status: true, msg: "Your Profile Update Successfuly", response: { profile }
+                                });
+                                // resolve(imageUrl);
+                            }
+                        });
+
                     } else {
-                        console.log('==image path===',imageName );
-                        // Construct the URL for the image
-
-                        imageUrl = `http://${baseUrl}/profileLogo/${imageName}`;
-                        res.status(200).json({status: false,msg: "Your Subscription Expire Please Contect Admin",response: imageUrl
-                });
-                        // resolve(imageUrl);
+                        res.json({
+                            status: false,
+                            msg: "User Not Found",
+                            response: null
+                        });
                     }
-                });
-                
-            }else{
+                } else {
+                    const currentDate = new Date();
+                    const year = currentDate.getFullYear();
+                    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+                    const day = currentDate.getDate().toString().padStart(2, '0');
+                    const hours = currentDate.getHours().toString().padStart(2, '0');
+                    const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+                    const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+                    // Construct the date and time strings
+                    const currentDateStr = `${day}${month}${year}`;
+                    const currentTimeStr = `${hours}${minutes}${seconds}`;
+                    const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
+
+                    const { profileLogo, shopName, mobileNumber, street, city, state, pinCode } = req.body;
+
+                    const baseUrl = req.headers.host;
+                    let imageUrl = '';
+                    const getAdminUser = await AdminUserModel.find({ keyValue: keyValue });
+                    if (getAdminUser) {
+                        let imageBase64 = profileLogo;
+                        const base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                        const imageName = `${invoiceDateandTime}` + '.png';
+                        const imageFolderPath = path.join(__dirname, '..', 'profileLogo');
+                        const updatedProfile = await UserServices.profileUpdate(keyValue, imageFolderPath, imageName, shopName, mobileNumber, street, city, state, pinCode);
+                        if (!fs.existsSync(imageFolderPath)) {
+                            fs.mkdirSync(imageFolderPath);
+                        }
+                        const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
+                        const buffer = Buffer.from(base64Image, 'base64');
+
+                        fs.writeFile(imagePath, buffer, (err) => {
+                            console.log('==image path===', updatedProfile.imageFolderPath);
+
+                            if (err) {
+                                console.error(err);
+                                res.status(500).json('Error uploading image');
+                            } else {
+                                console.log('==image path===', updatedProfile.imageName);
+                                // Construct the URL for the image
+
+                                imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
+
+                                const profile = {
+                                    shopName: updatedProfile.shopName,
+                                    profileLogo: imageUrl,
+                                    mobile: updatedProfile.mobileNumber,
+                                    street: updatedProfile.street,
+                                    city: updatedProfile.city,
+                                    state: updatedProfile.state,
+                                    pinCode: updatedProfile.pinCode
+
+                                };
+                                res.status(200).json({
+                                    status: true, msg: "Your Profile Update Successfuly", response: { profile }
+                                });
+                                // resolve(imageUrl);
+                            }
+                        });
+
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "User Not Found",
+                            response: null
+                        });
+                    }
+
+                }
+
+            }
+        });
+    } else {
+        res.status(200).json({
+            status: false,
+            msg: "Your Subscription Expire Please Contect Admin",
+            response: null
+        });
+    }
+};
+
+exports.getProfile = async (req, res, next) => {
+    const isValidToken = await UserServices.checkToken(req.token);
+    if (isValidToken) {
+        jwt.verify(req.token, secretKey, async (error, authData) => {
+            if (error) {
                 res.json({
                     status: false,
-                    msg: "User Not Found",
-                    response: null
+                    msg: "Token Invalid"
                 });
-            }
+            } else {
+                const keyValue = authData._id;
+                console.log('==keyValue===', keyValue);
+                const baseUrl = req.headers.host;
+                let imageUrl = '';
+                const savedProfile = await Profile.findOne({ keyValue: keyValue });
+                console.log('==savedProfile===', savedProfile);
+                if (savedProfile) {
+                    const imagePath = path.join(`${savedProfile.imageFolderPath}`, `${savedProfile.imageName}`);
+
+                    console.log('==image path===', savedProfile.imageName);
+                    imageUrl = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
+                    const profile = {
+                        shopName: savedProfile.shopName,
+                        profileLogo: imageUrl,
+                        mobile: savedProfile.mobileNumber,
+                        street: savedProfile.street,
+                        city: savedProfile.city,
+                        state: savedProfile.state,
+                        pinCode: savedProfile.pinCode
+
+                    };
+                    res.status(200).json({
+                        status: true, msg: "Your Profile Retrieve Successful", response: { profile }
+                    });
+                } else {
+                    res.status(200).json({
+                        status: false, msg: "Profile Not Found Please update Your Profile", response: null
+                    });
+                }
+
             }
         });
     } else {

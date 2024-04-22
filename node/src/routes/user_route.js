@@ -26,6 +26,7 @@ router.get('/pdf',UserController.getPdf);
 router.post('/keepOrder',verifyToken,UserController.keepOrder);
 router.get('/getKeepOrder',verifyToken,UserController.getKeepOrder);
 router.post('/profileUpdate',verifyToken,UserController.profileUpdate);
+router.get('/getProfile',verifyToken,UserController.getProfile);
 
 
 function verifyToken(req,res,next){

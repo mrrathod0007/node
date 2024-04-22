@@ -1,4 +1,4 @@
-const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf } = require("../model/user_model");
+const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf,Profile } = require("../model/user_model");
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -471,6 +471,20 @@ class UserServices {
                 resolve(pdfUrl); // Resolve with the file path or name
             });
         });
+    }
+
+    static async profileUpdate(keyValue,imageFolderPath, imageName,shopName, mobileNumber,street,city,state,pinCode) {
+        try {
+            if (!imageFolderPath || !shopName || !mobileNumber || !street || !city || !state || !pinCode) {
+                throw new Error('All Field are required.');
+            }
+
+            const updatedProfile = await Profile.create({ keyValue,imageFolderPath,imageName, shopName, mobileNumber,street,city,state,pinCode });
+            return updatedProfile;
+        }
+        catch (err) {
+            throw err;
+        }
     }
 
     static async generateHeader(doc) {

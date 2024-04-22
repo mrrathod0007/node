@@ -303,6 +303,45 @@ const pdfSchema = new Schema({
     }
 
 });
+const profileSchema = new Schema({
+    keyValue: {
+        type: String,
+        required: true
+    },
+    imageFolderPath: {
+        type: String,
+        required: true
+    },
+    imageName: {
+        type: String,
+        required: true
+    },
+    shopName: {
+        type: String,
+        required: true
+    },
+    mobileNumber: {
+        type: String,
+        required: true
+    },
+    street: {
+        type: String,
+        required: true
+    },
+    city: {
+        type: String,
+        required: true
+    },
+    state: {
+        type: String,
+        required: true
+    },
+    pinCode: {
+        type: String,
+        required: true
+    },
+
+});
 
 adminUserSchema.pre('save', async function () {
     try {
@@ -488,7 +527,8 @@ const Menu = mongoose.model('Menu', menuSchema);
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 const KeepOrder = mongoose.model('KeepOrder', keepOrderSchema);
 const AddPdf = mongoose.model('AddPdf', pdfSchema);
+const Profile = mongoose.model('Profile', profileSchema);
 
 
-module.exports = { AdminUserModel,AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf };
+module.exports = { AdminUserModel,AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder,AddPdf,Profile };
 
