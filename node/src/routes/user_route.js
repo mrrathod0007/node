@@ -25,6 +25,7 @@ router.get('/getInvoice',verifyToken,UserController.getInvoice);
 router.get('/pdf',UserController.getPdf);
 router.post('/keepOrder',verifyToken,UserController.keepOrder);
 router.get('/getKeepOrder',verifyToken,UserController.getKeepOrder);
+router.post('/profileUpdate',verifyToken,UserController.profileUpdate);
 
 
 function verifyToken(req,res,next){

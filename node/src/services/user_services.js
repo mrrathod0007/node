@@ -106,7 +106,7 @@ class UserServices {
                                     user.nextExpiry = 0;
                                     const newUser = await user.save();
                                     decodedToken = jwt.verify(newToken, secretKey);
-                                    // return newToken;
+                                    return newToken;
                                     //  newToken = newToken;
                                 }
 
@@ -117,35 +117,40 @@ class UserServices {
                         });
 
                         // const decodedToken = jwt.verify(user.token, secretKey);
-                        console.log('==decodedToken==', decodedToken);
-                        const logintime = user.created;
-                        console.log('==logintime==', logintime / 1000);
-                        const currentTime = Math.floor(Date.now() / 1000);
-                        console.log('==currentTime==', currentTime);
-                        const remainingTime = decodedToken.exp - currentTime;
-                        const remainingDays = Math.floor(remainingTime / (24 * 60 * 60));
-                        const remainingHours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
-                        const remainingMinutes = Math.floor((remainingTime % (60 * 60)) / 60);
-
-                        console.log(`Token expires in: ${remainingDays} days, ${remainingHours} hours, and ${remainingMinutes} minutes.`);
-                        if (decodedToken.exp > currentTime) {
-                            return user.token;
-                        } else {
-                            if (user.nextExpiry > 0) {
-                                const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                                console.log('==next==', user.nextExpiry);
-                                newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
-                                user.token = newToken;
-                                user.lastExpiry = user.nextExpiry;
-                                user.nextExpiry = 0;
-                                const newUser = await user.save();
-                                return newToken;
+                        if(decodedToken !== undefined){
+                            console.log('==decodedToken==', decodedToken);
+                            const logintime = user.created;
+                            console.log('==logintime==', logintime / 1000);
+                            const currentTime = Math.floor(Date.now() / 1000);
+                            console.log('==currentTime==', currentTime);
+                            const remainingTime = decodedToken.exp - currentTime;
+                            const remainingDays = Math.floor(remainingTime / (24 * 60 * 60));
+                            const remainingHours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
+                            const remainingMinutes = Math.floor((remainingTime % (60 * 60)) / 60);
+    
+                            console.log(`Token expires in: ${remainingDays} days, ${remainingHours} hours, and ${remainingMinutes} minutes.`);
+                            if (decodedToken.exp > currentTime) {
+                                return user.token;
                             } else {
-                                console.log('==next==', user.nextExpiry);
-                                throw new Error("Session expired");
+                                if (user.nextExpiry > 0) {
+                                    const expiry = (user.nextExpiry) * (24 * 60 * 60);
+                                    console.log('==next==', user.nextExpiry);
+                                    newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
+                                    user.token = newToken;
+                                    user.lastExpiry = user.nextExpiry;
+                                    user.nextExpiry = 0;
+                                    const newUser = await user.save();
+                                    return newToken;
+                                } else {
+                                    console.log('==next==', user.nextExpiry);
+                                    throw new Error("Session expired");
+                                }
+    
                             }
-
+                        }else{
+                            throw new Error("Session expired");
                         }
+                       
                     }
                 }
             } else {

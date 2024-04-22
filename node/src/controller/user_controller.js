@@ -7,7 +7,8 @@ const fs = require('fs');
 const { table } = require("console");
 const secretKey = "secretKey";
 const path = require('path');
-const hbs = require("hbs")
+const hbs = require("hbs");
+const { response } = require("express");
 
 exports.adminRegister = async (req, res, next) => {
     try {
@@ -1197,13 +1198,14 @@ exports.addInvoice = async (req, res, next) => {
                 if (existingInvoice) {
 
                     const abc = await existingInvoice.addItemsToInvoice(table);
-                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, price, qty, subTotal, gst, total }) => ({
+                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items,note, price, qty, subTotal, gst, total }) => ({
                         billNumber,
                         tableId,
                         customerName,
                         customerMobile,
                         tableMember,
                         items,
+                        note,
                         price,
                         qty,
                         subTotal,
@@ -1254,13 +1256,14 @@ exports.addInvoice = async (req, res, next) => {
                         });
 
                         const savedInvoice = await newInvoice.save();
-                        const responseTable = savedInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, price, qty, subTotal, gst, total }) => ({
+                        const responseTable = savedInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items,note, price, qty, subTotal, gst, total }) => ({
                             billNumber,
                             tableId,
                             customerName,
                             customerMobile,
                             tableMember,
                             items,
+                            note,
                             price,
                             qty,
                             subTotal,
@@ -1532,6 +1535,66 @@ exports.getKeepOrder = async (req, res, next) => {
                 }
 
 
+            }
+        });
+    } else {
+        res.status(200).json({
+            status: false,
+            msg: "Your Subscription Expire Please Contect Admin",
+            response: null
+        });
+    }
+};
+exports.profileUpdate = async (req, res, next) => {
+    const isValidToken = await UserServices.checkToken(req.token);
+    if (isValidToken) {
+        jwt.verify(req.token, secretKey, async (error, authData) => {
+            if (error) {
+                res.json({
+                    status: false,
+                    msg: "Token Invalid"
+                });
+            } else {
+                const keyValue = authData._id;
+                const { imageLogo,  } = req.body;
+                const baseUrl = req.headers.host;
+                let imageUrl = '';
+                const getAdminUser = await AdminUserModel.find({ keyValue: keyValue});
+               if(getAdminUser){
+                let imageBase64 = imageLogo;
+                const base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                const imageName = 'uuidv4' + '.png';
+                const imageFolderPath = path.join(__dirname, '..', 'profileLogo');
+                if (!fs.existsSync(imageFolderPath)) {
+                    fs.mkdirSync(imageFolderPath);
+                }
+                const imagePath = path.join(imageFolderPath, imageName);
+                const buffer = Buffer.from(base64Image, 'base64');
+                
+                fs.writeFile(imagePath, buffer, (err) => {
+                    console.log('==image path===',imagePath );
+
+                    if (err) {
+                        console.error(err);
+                        res.status(500).json('Error uploading image');
+                    } else {
+                        console.log('==image path===',imageName );
+                        // Construct the URL for the image
+
+                        imageUrl = `http://${baseUrl}/profileLogo/${imageName}`;
+                        res.status(200).json({status: false,msg: "Your Subscription Expire Please Contect Admin",response: imageUrl
+                });
+                        // resolve(imageUrl);
+                    }
+                });
+                
+            }else{
+                res.json({
+                    status: false,
+                    msg: "User Not Found",
+                    response: null
+                });
+            }
             }
         });
     } else {

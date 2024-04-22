@@ -6,9 +6,10 @@ const app = express();
 
 
 const mediaPath = path.join(__dirname, 'documents');
-
+const imagePath = path.join(__dirname, 'profileLogo');
 app.use(body_parser.json());
 app.use('/documents', express.static(mediaPath));
+app.use('/profileLogo', express.static(imagePath));
 app.use('/',userRouter);
 
 
