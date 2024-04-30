@@ -837,12 +837,20 @@ exports.resetPassword = async (req, res, next) => {
                 } else {
                     let branches;
                     for (const value of branchUser.branches) {
-                        console.log('===value===', value);
-                        branches = value;
-                    }
+                        console.log('===abcde===',value._id ,`${authData._id}`);
+                        if (value._id == `${authData._id}`) {
 
+                            branches = value;
+                            console.log('===abcde===', branches);
+                        }
+                        // console.log('===value===', value);
+                        // branches = value;
+                       
+                    }
                     branches.pass = newPassword;
                     await branchUser.save();
+
+                    
                 }
                 // if (!user) {
                 //     return res.status(400).json({ error: 'Invalid or expired token' });
