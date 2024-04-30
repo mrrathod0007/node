@@ -31,17 +31,66 @@ exports.adminRegister = async (req, res, next) => {
         } else {
             let isExist = false;
             let branchuserIdFromLoop;
-            for (const value of branches) {
-                const allbranches = await AdminBranchesModel.find({ 'branches.userId': value.userId });
-                console.log('=allbranches==', allbranches);
-                if (allbranches.length > 0) {
+            let checkUserIdForBranch = [];
+            for (var i =0; i< branches.length; i++){
+                checkUserIdForBranch.push(branches[i].userId);
+
+            }
+            
+            const allAdminMobile = await AdminUserModel.find({mobile:mobile });
+            const allAdminId = await AdminUserModel.find({userName:userName});
+            if(allAdminMobile.length > 0){
+                isExist = true;
+                branchuserIdFromLoop = mobile;
+            } else if(allAdminId.length >0){
+                isExist = true;
+                branchuserIdFromLoop = userName;
+            }
+            let abc =[];
+            for(const value of branches){
+                      
+                if(abc.includes(value.userId)){
                     isExist = true;
-                    branchuserIdFromLoop = value.userId;
+                    branchuserIdFromLoop =  `${value.userId} Mobile Number can not use more then one`;
+                }else{
+                    abc.push(value.userId);
+                }
+                console.log('=allbranches==', abc);
+            }
+            for (const value of branches) {
+          
+                // if(checkUserIdForBranch.length >0){
+                //     if(checkUserIdForBranch.includes(value.userId)){
+                        
+                //         for (var i =0; i< branches.length; i++){
+                           
+                            
+
+            
+                //         }
+
+                        
+                //     }
+                // }
+                const allbranches = await AdminBranchesModel.find({ 'branches.userId': value.userId });
+                
+                
+                if(allAdminMobile.length > 0){
+                    isExist = true;
+                    branchuserIdFromLoop = `${mobile} mobile number is Allready Register`;
+                } else if(allAdminId.length >0){
+                    isExist = true;
+                    branchuserIdFromLoop = `${userName} userName is Allready Register`;
+                }
+                else if (allbranches.length > 0) {
+                    
+                    isExist = true;
+                    branchuserIdFromLoop =  `${value.userId} mobile number is Allready Register`;
                 }
             }
             if (isExist) {
                 console.log('=isExist true==', isExist);
-                res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
+                res.json({ status: false, msg: `${branchuserIdFromLoop}` });
 
             } else {
                 console.log('=isExist==', isExist);
@@ -1172,7 +1221,7 @@ exports.addInvoice = async (req, res, next) => {
                 const month = String(currentDate.getMonth() + 1).padStart(2, '0');
                 const year = currentDate.getFullYear();
                 const formattedDate = `${day}/${month}/${year}`;
-                const { tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total } = req.body;
+                const { tableId, customerName, customerMobile, tableMember,payModeCash, items, note, price, qty, subTotal, gst, total } = req.body;
                 const date = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
                 console.log("==note==", note);
                 const table = [{
@@ -1182,6 +1231,7 @@ exports.addInvoice = async (req, res, next) => {
                     customerMobile: customerMobile,
                     tableMember: tableMember,
                     items: items,
+                    payModeCash : payModeCash,
                     note: note,
                     price: price,
                     qty: qty,
@@ -1196,13 +1246,14 @@ exports.addInvoice = async (req, res, next) => {
                 if (existingInvoice) {
 
                     const abc = await existingInvoice.addItemsToInvoice(table);
-                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
+                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items,payModeCash, note, price, qty, subTotal, gst, total }) => ({
                         billNumber,
                         tableId,
                         customerName,
                         customerMobile,
                         tableMember,
                         items,
+                        payModeCash,
                         note,
                         price,
                         qty,
@@ -1254,13 +1305,14 @@ exports.addInvoice = async (req, res, next) => {
                         });
 
                         const savedInvoice = await newInvoice.save();
-                        const responseTable = savedInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
+                        const responseTable = savedInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, payModeCash, note, price, qty, subTotal, gst, total }) => ({
                             billNumber,
                             tableId,
                             customerName,
                             customerMobile,
                             tableMember,
                             items,
+                            payModeCash,
                             note,
                             price,
                             qty,
@@ -1318,6 +1370,7 @@ exports.getInvoice = async (req, res, next) => {
                     msg: "Token Invalid"
                 });
             } else {
+                const baseUrl = req.headers.host;
                 const keyValue = authData._id;
                 const { branchName, startDate, endDate, tableId } = req.body;
                 console.log("==keyValue==", startDate, endDate);
@@ -1332,12 +1385,14 @@ exports.getInvoice = async (req, res, next) => {
                 const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue, 'branches.branchName': branchName });
                 let branchKeyValue;
                 let branches;
+                let keyForLogo
                 if (branchUser !== null) {
                     branches = branchUser.branches;
                     for (const value of branches) {
                         if (value.branchName === branchName) {
                             console.log("==value==", value._id);
                             branchKeyValue = `${value._id}`;
+                            keyForLogo = `${value.keyValue}`
                         }
                     }
 
@@ -1356,19 +1411,23 @@ exports.getInvoice = async (req, res, next) => {
                         date: invoice.date,
                         table: invoice.table.filter(item => item.tableId === tableId)
                     }));
-
+                    console.log("==filteredInvoices==", filteredInvoices.table);
                     const responseInvoices = filteredInvoices.filter(invoice => invoice.table.length > 0);
-
+                    const abc = path.join(__dirname, '..', 'logo', 'icon.png');
+                    const logoPath = `http://192.168.29.214:2000/logo/icon.png`
                     const invoice = responseInvoices.map(invoice => ({
                         id: invoice.id,
+                        no:invoice.no,
                         date: invoice.date,
-                        table: invoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
+                        table: invoice.table.map(({ billNumber, tableId,logoPath, customerName, customerMobile, tableMember, items,payModeCash, note, price, qty, subTotal, gst, total }) => ({
                             billNumber,
                             tableId,
+                            logoPath,
                             customerName,
                             customerMobile,
                             tableMember,
                             items,
+                            payModeCash,
                             note,
                             price,
                             qty,
@@ -1380,16 +1439,18 @@ exports.getInvoice = async (req, res, next) => {
 
                     if (invoice.length > 0) {
                         const date = invoice[0].date;
+
+                        const newInvoicePdf = await UserServices.htmlPdf(keyValue,invoice, req.headers.host, startDate, endDate);
                         const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
 
-                        console.log("==pdf==", invoicePdf);
+                        console.log("==pdf==", newInvoicePdf);
                         // const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
                         //  const pdf = await this.getPdf(invoicePdf);
                         // const pdfUrl = `http://192.168.1.7:3000/pdf`;
 
                         res.status(200).json({ status: true, msg: "Invoices Retrieve Successful", response: { invoicePdf } });
                     } else {
-                        res.status(200).json({ status: true, msg: "Invoices not Found in this Date Range", response: null });
+                        res.status(200).json({ status: false, msg: "Invoices not Found in this Date Range", response: null });
                     }
 
                 } else {
@@ -1397,17 +1458,27 @@ exports.getInvoice = async (req, res, next) => {
                         keyValue: branchKeyValue !== null ? branchKeyValue : keyValue,
                         date: { $gte: startDate, $lte: endDate }
                     });
-                    console.log("==existingInvoices==", existingInvoices, keyValue);
+                    const userForLogo = await AdminBranchesModel.findOne({'branches._id': keyValue });
+                    const savedProfile = await Profile.findOne({ keyValue: `${ userForLogo.keyValue}` });
+                    const logoPath = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
+                    const shopName = `${savedProfile.shopName}`;
+                    const address = `${savedProfile.street},${savedProfile.city}${savedProfile.state},${savedProfile.pinCode}`;
+                   
                     if (existingInvoices.length > 0) {
                         const invoice = existingInvoices.map(invoice => ({
+                            logoPath:logoPath,
+                            shopName:shopName,
+                            address:address,
                             id: invoice.id,
+                            no:invoice.no,
                             date: invoice.date,
-                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items, note, price, qty, subTotal, gst, total }) => ({
+                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items,payModeCash, note, price, qty, subTotal, gst, total }) => ({
                                 tableId,
                                 customerName,
                                 customerMobile,
                                 tableMember,
                                 items,
+                                payModeCash,
                                 note,
                                 price,
                                 qty,
@@ -1416,9 +1487,10 @@ exports.getInvoice = async (req, res, next) => {
                                 total
                             }))
                         }));
+                        const newInvoicePdf = await UserServices.htmlPdf(keyValue,invoice, req.headers.host, startDate, endDate);
                         const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
 
-                        console.log("==pdf==", invoicePdf);
+                        console.log("==pdf==", newInvoicePdf);
                         res.status(200).json({ status: true, msg: "Invoices Retrieve Successful for this Date Range", response: { invoicePdf } });
 
                     } else {
@@ -1545,255 +1617,275 @@ exports.getKeepOrder = async (req, res, next) => {
     }
 };
 exports.profileUpdate = async (req, res, next) => {
-    const isValidToken = await UserServices.checkToken(req.token);
-    if (isValidToken) {
-        jwt.verify(req.token, secretKey, async (error, authData) => {
-            if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
-            } else {
-                const keyValue = authData._id;
-                const savedProfile = await Profile.findOne({ keyValue: keyValue });
-                if (savedProfile) {
-
-                    const currentDate = new Date();
-                    const year = currentDate.getFullYear();
-                    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
-                    const day = currentDate.getDate().toString().padStart(2, '0');
-                    const hours = currentDate.getHours().toString().padStart(2, '0');
-                    const minutes = currentDate.getMinutes().toString().padStart(2, '0');
-                    const seconds = currentDate.getSeconds().toString().padStart(2, '0');
-
-                    // Construct the date and time strings
-                    const currentDateStr = `${day}${month}${year}`;
-                    const currentTimeStr = `${hours}${minutes}${seconds}`;
-                    const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
-
-                    const { profileLogo, shopName, mobileNumber, street, city, state, pinCode } = req.body;
-
-                    const baseUrl = req.headers.host;
-                    let imageUrl = '';
-                    let imageFolderPath;
-                    let base64Image;
-                    const getAdminUser = await AdminUserModel.find({ keyValue: keyValue });
-                    if (getAdminUser) {
-                        console.log('==profileLogo===', profileLogo);
-
-
-                        if (profileLogo !== undefined) {
-                            let imageBase64 = profileLogo;
-                             base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-                            const imageName = `${invoiceDateandTime}` + '.png';
-                            imageFolderPath = path.join(__dirname, '..', 'profileLogo');
-                            savedProfile.imageFolderPath = imageFolderPath;
-
-                        } else {
-                            savedProfile.imageFolderPath = savedProfile.imageFolderPath;
-                        }
-                        if (shopName !== undefined) {
-                            savedProfile.shopName = shopName;
-                        } else {
-                            savedProfile.shopName = savedProfile.shopName;
-                        }
-                        if (mobileNumber !== undefined) {
-                            savedProfile.mobileNumber = mobileNumber;
-                        } else {
-                            savedProfile.mobileNumber = savedProfile.mobileNumber;
-                        }
-                        if (street !== undefined) {
-                            savedProfile.street = street;
-                        } else {
-                            savedProfile.street = savedProfile.street;
-                        }
-                        if (city !== undefined) {
-                            savedProfile.city = city;
-                        } else {
-                            savedProfile.city = savedProfile.city;
-                        }
-                        if (state !== undefined) {
-                            savedProfile.state = state;
-                        } else {
-                            savedProfile.state = savedProfile.state;
-                        }
-                        if (pinCode !== undefined) {
-                            savedProfile.pinCode = pinCode;
-                        } else {
-                            savedProfile.pinCode = savedProfile.pinCode;
-                        }
-
-                        const updatedProfile = await savedProfile.save();
-                        if (!fs.existsSync(imageFolderPath)) {
-                            fs.mkdirSync(imageFolderPath);
-                        }
-                        const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
-                        const buffer = Buffer.from(base64Image, 'base64');
-
-                        fs.writeFile(imagePath, buffer, (err) => {
-                            console.log('==image path===', updatedProfile.imageFolderPath);
-
-                            if (err) {
-                                console.error(err);
-                                res.status(500).json('Error uploading image');
-                            } else {
-                                console.log('==image path===', updatedProfile.imageName);
-                                // Construct the URL for the image
-
-                                imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
-
-                                const profile = {
-                                    shopName: updatedProfile.shopName,
-                                    profileLogo: imageUrl,
-                                    mobile: updatedProfile.mobileNumber,
-                                    street: updatedProfile.street,
-                                    city: updatedProfile.city,
-                                    state: updatedProfile.state,
-                                    pinCode: updatedProfile.pinCode
-
-                                };
-                                res.status(200).json({
-                                    status: true, msg: "Your Profile Update Successfuly", response: { profile }
-                                });
-                                // resolve(imageUrl);
-                            }
-                        });
-
-                    } else {
-                        res.json({
-                            status: false,
-                            msg: "User Not Found",
-                            response: null
-                        });
-                    }
+    try {
+        const isValidToken = await UserServices.checkToken(req.token);
+        if (isValidToken) {
+            jwt.verify(req.token, secretKey, async (error, authData) => {
+                if (error) {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
                 } else {
-                    const currentDate = new Date();
-                    const year = currentDate.getFullYear();
-                    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
-                    const day = currentDate.getDate().toString().padStart(2, '0');
-                    const hours = currentDate.getHours().toString().padStart(2, '0');
-                    const minutes = currentDate.getMinutes().toString().padStart(2, '0');
-                    const seconds = currentDate.getSeconds().toString().padStart(2, '0');
-
-                    // Construct the date and time strings
-                    const currentDateStr = `${day}${month}${year}`;
-                    const currentTimeStr = `${hours}${minutes}${seconds}`;
-                    const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
-
-                    const { profileLogo, shopName, mobileNumber, street, city, state, pinCode } = req.body;
-
-                    const baseUrl = req.headers.host;
-                    let imageUrl = '';
-                    const getAdminUser = await AdminUserModel.find({ keyValue: keyValue });
-                    if (getAdminUser) {
-                        let imageBase64 = profileLogo;
-                        const base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-                        const imageName = `${invoiceDateandTime}` + '.png';
-                        const imageFolderPath = path.join(__dirname, '..', 'profileLogo');
-                        const updatedProfile = await UserServices.profileUpdate(keyValue, imageFolderPath, imageName, shopName, mobileNumber, street, city, state, pinCode);
-                        if (!fs.existsSync(imageFolderPath)) {
-                            fs.mkdirSync(imageFolderPath);
-                        }
-                        const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
-                        const buffer = Buffer.from(base64Image, 'base64');
-
-                        fs.writeFile(imagePath, buffer, (err) => {
-                            console.log('==image path===', updatedProfile.imageFolderPath);
-
-                            if (err) {
-                                console.error(err);
-                                res.status(500).json('Error uploading image');
+                    const keyValue = authData._id;
+                    const savedProfile = await Profile.findOne({ keyValue: keyValue });
+                    if (savedProfile) {
+    
+                        const currentDate = new Date();
+                        const year = currentDate.getFullYear();
+                        const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+                        const day = currentDate.getDate().toString().padStart(2, '0');
+                        const hours = currentDate.getHours().toString().padStart(2, '0');
+                        const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+                        const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+    
+                        // Construct the date and time strings
+                        const currentDateStr = `${day}${month}${year}`;
+                        const currentTimeStr = `${hours}${minutes}${seconds}`;
+                        const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
+    
+                        const { profileLogo, shopName, gstNumber, street, city, state, pinCode } = req.body;
+                        console.log('==base64===', profileLogo);
+                        const baseUrl = req.headers.host;
+                        let imageUrl = '';
+                        let imageFolderPath;
+                        let base64Image;
+                        const getAdminUser = await AdminUserModel.find({ keyValue: keyValue });
+                        if (getAdminUser) {
+    
+    
+                            if (profileLogo !== undefined) {
+                                let imageBase64 = profileLogo;
+                                 base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                                const imageName = `${invoiceDateandTime}` + '.png';
+                                imageFolderPath = path.join(__dirname, '..', 'profileLogo');
+                                savedProfile.imageFolderPath = imageFolderPath;
+    
                             } else {
-                                console.log('==image path===', updatedProfile.imageName);
-                                // Construct the URL for the image
-
-                                imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
-
-                                const profile = {
-                                    shopName: updatedProfile.shopName,
-                                    profileLogo: imageUrl,
-                                    mobile: updatedProfile.mobileNumber,
-                                    street: updatedProfile.street,
-                                    city: updatedProfile.city,
-                                    state: updatedProfile.state,
-                                    pinCode: updatedProfile.pinCode
-
-                                };
-                                res.status(200).json({
-                                    status: true, msg: "Your Profile Update Successfuly", response: { profile }
-                                });
-                                // resolve(imageUrl);
+                                savedProfile.imageFolderPath = savedProfile.imageFolderPath;
                             }
-                        });
-
+                            if (shopName !== undefined) {
+                                savedProfile.shopName = shopName;
+                            } else {
+                                savedProfile.shopName = savedProfile.shopName;
+                            }
+                            if (gstNumber !== undefined) {
+                                savedProfile.gstNumber = gstNumber;
+                            } else {
+                                savedProfile.gstNumber = savedProfile.gstNumber;
+                            }
+                            if (street !== undefined) {
+                                savedProfile.street = street;
+                            } else {
+                                savedProfile.street = savedProfile.street;
+                            }
+                            if (city !== undefined) {
+                                savedProfile.city = city;
+                            } else {
+                                savedProfile.city = savedProfile.city;
+                            }
+                            if (state !== undefined) {
+                                savedProfile.state = state;
+                            } else {
+                                savedProfile.state = savedProfile.state;
+                            }
+                            if (pinCode !== undefined) {
+                                savedProfile.pinCode = pinCode;
+                            } else {
+                                savedProfile.pinCode = savedProfile.pinCode;
+                            }
+    
+                            const updatedProfile = await savedProfile.save();
+                            if (!fs.existsSync(imageFolderPath)) {
+                                fs.mkdirSync(imageFolderPath);
+                            }
+                            const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
+                            const buffer = Buffer.from(base64Image, 'base64');
+    
+                            fs.writeFile(imagePath, buffer, (err) => {
+                                console.log('==image path===', updatedProfile.imageFolderPath);
+    
+                                if (err) {
+                                    console.error(err);
+                                    res.status(500).json('Error uploading image');
+                                } else {
+                                    console.log('==image path===', updatedProfile.imageName);
+                                    // Construct the URL for the image
+    
+                                    imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
+    
+                                    const profile = {
+                                        shopName: updatedProfile.shopName,
+                                        profileLogo: imageUrl,
+                                        gstNumber: updatedProfile.gstNumber,
+                                        street: updatedProfile.street,
+                                        city: updatedProfile.city,
+                                        state: updatedProfile.state,
+                                        pinCode: updatedProfile.pinCode
+    
+                                    };
+                                    res.status(200).json({
+                                        status: true, msg: "Your Profile Update Successfuly", response: { profile }
+                                    });
+                                    // resolve(imageUrl);
+                                }
+                            });
+    
+                        } else {
+                            res.json({
+                                status: false,
+                                msg: "User Not Found",
+                                response: null
+                            });
+                        }
                     } else {
-                        res.json({
-                            status: false,
-                            msg: "User Not Found",
-                            response: null
-                        });
+                        console.log('==keyValue===', keyValue);
+                        const currentDate = new Date();
+                        const year = currentDate.getFullYear();
+                        const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+                        const day = currentDate.getDate().toString().padStart(2, '0');
+                        const hours = currentDate.getHours().toString().padStart(2, '0');
+                        const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+                        const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+    
+                        // Construct the date and time strings
+                        const currentDateStr = `${day}${month}${year}`;
+                        const currentTimeStr = `${hours}${minutes}${seconds}`;
+                        const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
+    
+                        const { profileLogo, shopName, gstNumber, street, city, state, pinCode } = req.body;
+                        console.log('==profileLogo===', shopName);
+                        
+
+                        const baseUrl = req.headers.host;
+                        let imageUrl = '';
+                        const getAdminUser = await AdminUserModel.find({ keyValue: keyValue });
+                        if (getAdminUser) {
+                            let imageBase64 = await profileLogo;
+                            const base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                            const imageName = `${invoiceDateandTime}` + '.png';
+                            const imageFolderPath = path.join(__dirname, '..', 'profileLogo');
+                            const updatedProfile = await UserServices.profileUpdate(keyValue, imageFolderPath, imageName, shopName, gstNumber, street, city, state, pinCode);
+                            if (!fs.existsSync(imageFolderPath)) {
+                                fs.mkdirSync(imageFolderPath);
+                            }
+                            const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
+                            const buffer = Buffer.from(base64Image, 'base64');
+    
+                            fs.writeFile(imagePath, buffer, (err) => {
+                                console.log('==image path===', updatedProfile.imageFolderPath);
+    
+                                if (err) {
+                                    console.error(err);
+                                    res.status(500).json('Error uploading image');
+                                } else {
+                                    console.log('==image path===', updatedProfile.imageName);
+                                    // Construct the URL for the image
+    
+                                    imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
+    
+                                    const profile = {
+                                        shopName: updatedProfile.shopName,
+                                        profileLogo: imageUrl,
+                                        gstNumber: updatedProfile.gstNumber,
+                                        street: updatedProfile.street,
+                                        city: updatedProfile.city,
+                                        state: updatedProfile.state,
+                                        pinCode: updatedProfile.pinCode
+    
+                                    };
+                                    res.status(200).json({
+                                        status: true, msg: "Your Profile Update Successfuly", response: { profile }
+                                    });
+                                    // resolve(imageUrl);
+                                }
+                            });
+    
+                        } else {
+                            res.json({
+                                status: false,
+                                msg: "User Not Found",
+                                response: null
+                            });
+                        }
+    
                     }
-
+    
                 }
-
-            }
-        });
-    } else {
+            });
+        } else {
+            res.status(200).json({
+                status: false,
+                msg: "Your Subscription Expire Please Contect Admin",
+                response: null
+            });
+        }
+    } catch (error) {
         res.status(200).json({
             status: false,
-            msg: "Your Subscription Expire Please Contect Admin",
+            msg: error,
             response: null
         });
     }
+   
 };
 
 exports.getProfile = async (req, res, next) => {
-    const isValidToken = await UserServices.checkToken(req.token);
-    if (isValidToken) {
-        jwt.verify(req.token, secretKey, async (error, authData) => {
-            if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
-            } else {
-                const keyValue = authData._id;
-                console.log('==keyValue===', keyValue);
-                const baseUrl = req.headers.host;
-                let imageUrl = '';
-                const savedProfile = await Profile.findOne({ keyValue: keyValue });
-                console.log('==savedProfile===', savedProfile);
-                if (savedProfile) {
-                    const imagePath = path.join(`${savedProfile.imageFolderPath}`, `${savedProfile.imageName}`);
-
-                    console.log('==image path===', savedProfile.imageName);
-                    imageUrl = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
-                    const profile = {
-                        shopName: savedProfile.shopName,
-                        profileLogo: imageUrl,
-                        mobile: savedProfile.mobileNumber,
-                        street: savedProfile.street,
-                        city: savedProfile.city,
-                        state: savedProfile.state,
-                        pinCode: savedProfile.pinCode
-
-                    };
-                    res.status(200).json({
-                        status: true, msg: "Your Profile Retrieve Successful", response: { profile }
+    try {
+        const isValidToken = await UserServices.checkToken(req.token);
+        if (isValidToken) {
+            jwt.verify(req.token, secretKey, async (error, authData) => {
+                if (error) {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
                     });
                 } else {
-                    res.status(200).json({
-                        status: false, msg: "Profile Not Found Please update Your Profile", response: null
-                    });
+                    const keyValue = authData._id;
+                    console.log('==keyValue===', keyValue);
+                    const baseUrl = req.headers.host;
+                    let imageUrl = '';
+                    const savedProfile = await Profile.findOne({ keyValue: keyValue });
+                    console.log('==savedProfile===', savedProfile);
+                    if (savedProfile) {
+                        const imagePath = path.join(`${savedProfile.imageFolderPath}`, `${savedProfile.imageName}`);
+    
+                        console.log('==image path===', savedProfile.imageName);
+                        imageUrl = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
+                        const profile = {
+                            shopName: savedProfile.shopName,
+                            profileLogo: imageUrl,
+                            gstNumber: savedProfile.gstNumber,
+                            street: savedProfile.street,
+                            city: savedProfile.city,
+                            state: savedProfile.state,
+                            pinCode: savedProfile.pinCode
+    
+                        };
+                        res.status(200).json({
+                            status: true, msg: "Your Profile Retrieve Successful", response: { profile }
+                        });
+                    } else {
+                        res.status(200).json({
+                            status: false, msg: "Profile Not Found Please update Your Profile", response: null
+                        });
+                    }
+    
                 }
-
-            }
-        });
-    } else {
+            });
+        } else {
+            res.status(200).json({
+                status: false,
+                msg: "Your Subscription Expire Please Contect Admin",
+                response: null
+            });
+        } 
+    } catch (error) {
         res.status(200).json({
             status: false,
-            msg: "Your Subscription Expire Please Contect Admin",
+            msg: error,
             response: null
         });
     }
+    
 };

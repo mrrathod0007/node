@@ -1,5 +1,8 @@
 const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf,Profile } = require("../model/user_model");
 const PDFDocument = require('pdfkit');
+const ejs = require('ejs');
+const pdf = require('html-pdf');
+
 const fs = require('fs');
 const path = require('path');
 const jwt = require("jsonwebtoken");
@@ -473,13 +476,13 @@ class UserServices {
         });
     }
 
-    static async profileUpdate(keyValue,imageFolderPath, imageName,shopName, mobileNumber,street,city,state,pinCode) {
+    static async profileUpdate(keyValue,imageFolderPath, imageName,shopName, gstNumber,street,city,state,pinCode) {
         try {
-            if (!imageFolderPath || !shopName || !mobileNumber || !street || !city || !state || !pinCode) {
+            if (!imageFolderPath || !shopName || !gstNumber || !street || !city || !state || !pinCode) {
                 throw new Error('All Field are required.');
             }
 
-            const updatedProfile = await Profile.create({ keyValue,imageFolderPath,imageName, shopName, mobileNumber,street,city,state,pinCode });
+            const updatedProfile = await Profile.create({ keyValue,imageFolderPath,imageName, shopName, gstNumber,street,city,state,pinCode });
             return updatedProfile;
         }
         catch (err) {
@@ -510,7 +513,7 @@ class UserServices {
 
         const customerInformationTop = 200;
         let totalInvoice = 0;
-
+        let payMode = invoice.table.payModeCash ? "Cash Payment" : "Online Payment";
 
         for (let i = 0; i < invoice.table.items.length; i++) {
             const totalPrice = ((invoice.table.qty[i]) * (invoice.table.price[i]));
@@ -526,9 +529,9 @@ class UserServices {
             .text("Invoice Date:", 50, customerInformationTop + 15)
             .text(invoice.date, 150, customerInformationTop + 15)
             .font("Helvetica-Bold")
-            // .text("Total:", 50, customerInformationTop + 30)
-            // .font("Helvetica-Bold")
-            // .text((totalInvoice.toFixed(2)), 150, customerInformationTop + 30)
+            .text("Payment Mode:", 50, customerInformationTop + 30)
+            .font("Helvetica-Bold")
+            .text(`${payMode}`, 150, customerInformationTop + 30)
 
             .font("Helvetica-Bold")
             .text("Customer Name:", 300, customerInformationTop)
@@ -1003,6 +1006,30 @@ class UserServices {
         const year = date.getFullYear();
 
         return year + "/" + month + "/" + day;
+    }
+    //   newHtml pdf
+
+    static async htmlPdf(keyValue, invoice, baseUrl,startDate,endDate) {
+
+        const data = {
+            jsonData: invoice
+        };
+     const filePath =  path.resolve(__dirname,'..','..','invoice.ejs');
+     console.log('==filePath==', filePath);
+    const htmlString=  fs.readFileSync(filePath).toString();
+    let option = {
+        format: 'A4'
+    }
+    const ejsData = ejs.render(htmlString,data);
+    const savePath =  path.resolve(__dirname,'..','..',);
+    pdf.create(ejsData,option).toFile(`${savePath}/user.pdf`,(err,response)=>{
+        if(err){
+            console.log('err');
+        }
+        console.log('file Generated');
+    });
+
+       
     }
 
 }

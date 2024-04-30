@@ -42,7 +42,8 @@ const adminBranches = new Schema({
         },
         userId:{
             type: String,
-            require: true
+            require: true,
+            unique: true
         },
         pass:{
             type: String,
@@ -198,6 +199,10 @@ const invoiceSchema = new Schema({
                 type: String,
                 required: true
             }],
+            payModeCash: {
+                type: Boolean,
+                required: true
+            },
             note: [
                 {
                     itemName:{
@@ -320,7 +325,7 @@ const profileSchema = new Schema({
         type: String,
         required: true
     },
-    mobileNumber: {
+    gstNumber: {
         type: String,
         required: true
     },

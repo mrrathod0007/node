@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Invoice</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <!-- <link rel="stylesheet" href="style.css"> -->
+    <style>
+        .send-bill-logo {
+            width: 110px;
+        }
+
+        .addres-text {
+            font-size: 18px;
+        }
+
+        h1 {
+            letter-spacing: 5px;
+            font-size: 45px;
+            color: #343434;
+
+        }
+
+        .address-text {
+            width: 33%;
+        }
+
+        .main-add {
+            font-size: 18px;
+        }
+
+        .total-price {
+            color: #ff4900;
+        }
+
+        .my-head tr th {
+            background-color: var(--bg-color);
+        }
+
+        footer {
+            background: #dee2e6;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+
+        }
+    </style>
+</head>
+
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+    <% let logo; %>
+        <% let shopName; %>
+            <% let address; %>
+
+                <% jsonData.forEach((data, i)=> { %>
+                    <% logo=data.logoPath; %>
+                        <% shopName=data.shopName; %>
+                            <% address=data.address; %>
+
+                                <% }); %>
+
+                                    <div class="main ">
+
+                                        <div
+                                            class="topbar d-flex justify-content-between mb-3 align-items-center border-bottom">
+
+                                            <img src="<%= logo %>" alt="" class="send-bill-logo">
+                                            <div class="address-text ">
+                                                <p class=" mb-1 "><span class=" fw-semibold"> Main Branch : </span>
+                                                <p>
+                                                    <%= shopName %> ,<%= address %>
+                                                </p>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="main " style="background: #e1c4b9; padding: 10px;">
+                                    <div class="topbar" style="position: relative;">
+                                        <div class="" style="width: fit-content;">
+                                            <img src="<%= logo %>" alt="" style="width: 110px;">
+                                        </div>
+                                        <div class="address-text " style="position: absolute; top:0; right: 0; width: fit-content;">
+                                            <p class=""><span class=" fw-semibold"> Main Branch : </span>
+                                            <p> 714, 715, Ratnanjali Square, Prernatirth Derasar Rd, Satellite, Ahmedabad, Gujarat 380015</p>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    </div>
+
+                                    <div class="invoice text-center">
+                                        <h1 class="fw-bold">Invoice</h1>
+                                    </div>
+                                    <div class=" mt-5">
+                                        <div class="row w-100 justify-content-between">
+                                            <div class="col-lg-6 col-sm-5">
+                                                <p class="mb-1"><span class="fw-semibold"> Name : </span>Manish Patel
+                                                </p>
+                                                <p class="mb-1"><span class="fw-semibold"> Mobile No. : </span>+91
+                                                    2358467520</p>
+                                                <p class="mb-1"><span class="fw-semibold"> Date : </span>March 15, 2024
+                                                </p>
+                                                <p class="mb-1"><span class="fw-semibold"> Invoice No. : </span>1</p>
+                                            </div>
+
+                                            <div class="col-lg-6 col-sm-5">
+                                                <p class="mb-1"><span class="fw-semibold"> Shop Address : </span>
+                                                    <%= shopName %> ,714, 715, Ratnanjali Square,
+                                                        Prernatirth Derasar Rd, Satellite, Ahmedabad, Gujarat 380015
+                                                </p>
+                                                <p class="mb-1"><span class="fw-semibold"> Mobile No. : </span>+91
+                                                    2358467520</p>
+                                                <p class="mb-1"><span class="fw-semibold"> Email : </span>abc@gmail.com
+                                                </p>
+                                                <p class="mb-1"><span class="fw-semibold"> Gst No. :
+                                                    </span>12589463495107</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <table >
+                                        <tr>
+                                            <th colspan="9" style="margin: 250px;" class="my-head">Merged Header</th>
+                                        </tr>
+                                        <tr>
+                                            <th>Sr.No</th>
+                                            <th>Date</th>
+                                            <th>Table No</th>
+                                            <th>Item</th>
+                                            <th>Qty</th>
+                                            <th>Price</th>
+                                            <th>Sub Total</th>
+                                            <th>gst</th>
+                                            <th>Total</th>
+                                        </tr>
+                                        <tbody>
+                                            <% let globalIndex=1; %>
+                                                <% jsonData.forEach((data, i)=> { %>
+                                                    <% let xValue=data.table.reduce((acc, t)=> acc + t.items.length, 0);
+                                                        %>
+                                                        <% data.table.forEach((table, u)=> { %>
+                                                            <% let itemValue=table.items.length; %>
+                                                                <% table.items.forEach((item, p)=> { %>
+                                                                    <tr>
+                                                                        <% if (globalIndex===1) { %>
+                                                                            <td rowspan="<%= xValue %>">
+                                                                                <%= data.no %>
+                                                                            </td>
+                                                                            <td rowspan="<%= xValue %>">
+                                                                                <%= data.date %>
+                                                                            </td>
+                                                                            <% } %>
+                                                                                <% if (p===0) { %>
+                                                                                    <td rowspan="<%= itemValue %>">
+                                                                                        Table No: <%= table.tableId %>
+                                                                                            <br>
+                                                                                            Customer Name: <%=
+                                                                                                table.customerName %>
+                                                                                                <br>
+                                                                                                Customer Mobile: <%=
+                                                                                                    table.customerMobile
+                                                                                                    %><br>
+                                                                                    </td>
+                                                                                    <% } %>
+                                                                                        <td>
+                                                                                            <%= item %>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <%= table.qty[p] %>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <%= table.price[p] %>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <%= table.subTotal[p] %>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <%= table.gst[p] %>
+                                                                                        </td>
+                                                                                        <% if (p===0) { %>
+                                                                                            <% let
+                                                                                                totalBill=table.items.reduce((acc,
+                                                                                                item, index)=> {
+                                                                                                let withGst =
+                                                                                                (table.qty[index] *
+                                                                                                table.price[index]) *
+                                                                                                18 / 100;
+                                                                                                return acc +
+                                                                                                (table.qty[index] *
+                                                                                                table.price[index]) +
+                                                                                                withGst;
+                                                                                                }, 0); %>
+                                                                                                <td
+                                                                                                    rowspan="<%= itemValue %>">
+                                                                                                    <%= totalBill.toFixed(2)
+                                                                                                        %>
+                                                                                                </td>
+                                                                                                <% } %>
+                                                                    </tr>
+                                                                    <% globalIndex++; %>
+                                                                        <% }); %>
+                                                                            <% }); %>
+                                                                                <% }); %>
+                                        </tbody>
+
+                                    </table>
+
+
+
+</body>
+
+</html>
