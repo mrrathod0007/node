@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            margin-top: auto;
+
+        }
+
+        .topbar {
+            background-color: var(--bg-color);
+            padding: 10px;
+        }
+
+        .send-bill-logo {
+            width: 110px;
+        }
+
+        .addres-text {
+            font-size: 18px;
+        }
+
+        h1 {
+            letter-spacing: 5px;
+            font-size: 45px;
+            color: #343434;
+        }
+
+        .address-text {
+            width: 33%;
+        }
+
+        .main-add {
+            font-size: 18px;
+        }
+
+        .total-price {
+            color: #ff4900;
+        }
+
+        .my-head {
+            background-color: #e1c4b9;
+            padding: auto;
+        }
+
+        footer {
+            background: #dee2e6;
+        }
+
+        .bdr-left-custom {
+            border-left: 1px solid #dee2e6;
+        }
+
+        .no-border {
+            border: none;
+        }
+
+        .bdr-top-custom {
+            border-bottom: none;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+
+        }
+    </style>
+</head>
+
+<body>
+    <% let billAmount=0; %>
+        <% let logo; %>
+            <% let shopName; %>
+            <% let Payment = '' ; %>
+                <% let address; %>
+                    <% logo=jsonData.logoPath; %>
+                        <% shopName=jsonData.shopName; %>
+                            <% address=jsonData.address; %>
+                            <% let
+                            totalBill=jsonData.table.items.reduce((acc,item,index)=>
+                            {
+                            var exPrices =
+                            jsonData.table.note[index].extraNote.exPrice;
+                            var total =
+                            exPrices.reduce((acc,
+                            currentValue) =>
+                            acc
+                            +currentValue,0);
+                            let amount
+                            =
+                            ((jsonData.table.qty[index]*jsonData.table.price[index])+
+                            total);
+                            let withGst = 0;
+                             if( jsonData.table.gst[index] > 0) { 
+                                withGst = (amount * 18/100) 
+                                 } else { 
+                                withGst = (amount * 0/100) 
+                                 }
+                            return acc +
+                            amount +
+                            withGst;},0);
+                            billAmount +=
+                            totalBill; %>
+                                    <% if(jsonData.table.payModeCash === true) { %>
+                                        <% Payment = "Cash Payment" %>
+                                    <% } else { %>
+                                        <% Payment = "Online Payment" %>
+                                    <% } %>
+
+
+                                        <div class="main">
+                                            <div class="topbar px-3 d-flex justify-content-between mb-3 align-items-center border-bottom"
+                                                style="background-color: #e1c4b9;">
+                                                <img src="<%= logo %>" alt="" class="send-bill-logo">
+                                                <div class="address-text "
+                                                    style="word-wrap: break-word; overflow-wrap: break-word;">
+                                                    <p class="mb-1"><span class=" fw-semibold"> Main Branch : </span>
+                                                    <p>
+                                                        <%= shopName %>
+                                                            <%= address %>
+                                                    </p>
+                                                    </p>
+                                                    <p class="mb-1"><span class="fw-semibold"> GSTIN : </span>
+                                                        <%= jsonData.gstNumber %>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                        <div class="invoice text-center">
+                                            <h1 class="fw-bold">Invoice</h1>
+                                        </div>
+                                        <div class="mt-4">
+                                            <div class="row w-100 px-3 justify-content-between">
+                                                <div class="col-lg-6 col-sm-5">
+                                                    <p class="mb-1"><span class="fw-semibold"> Name : </span>
+                                                        <%= jsonData.table.customerName %>
+                                                    </p>
+                                                    <p class="mb-1"><span class="fw-semibold"> Mobile No. : </span>
+                                                        <%= jsonData.table.customerMobile %>
+                                                    </p>
+                                                    <p class="mb-1"><span class="fw-semibold"> Date : </span>
+                                                        <%= jsonData.date %>
+                                                    </p>
+                                                    <p class="mb-1"><span class="fw-semibold"> Invoice No. : </span>
+                                                        <%= jsonData.table.billNumber %>
+                                                    </p>
+                                                    <p class="mb-1"><span class="fw-semibold"> Total Bill Amount :
+                                                        </span>
+                                                        <%= billAmount %>
+                                                    </p>
+                                                    <p class="mb-1"><span class="fw-semibold"> Payment Mode  :
+                                                    </span>
+                                                    <%= Payment %>
+                                                </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-2" style="font-size: 14px; padding: auto;">
+                                            <table id="table-id1">
+                                                <thead class="my-head">
+                                                    <tr>
+                                                    <tr>
+                                                        <th colspan="11">Invoice Details</th>
+                                                    </tr>
+                                                    <th scope="col" class="px-2 py-sm-3">Sr.No.</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Date</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Table</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Items</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Qty</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Price</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Extra Note</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Extra Price</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Sub Total</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Gst</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+
+
+
+
+                                                    <% let totalIncome=0; %>
+                                                    <% let itemValue=jsonData.table.items.length; %>
+                                                        <% let extraValue=jsonData.table.note; %>
+                                                            <% let extraNotes='' ; %>
+                                                                <% let exPrices=0; %>
+                                                                    <% jsonData.table.items.forEach((item, p)=> { %>
+                                                                        <tr>
+                                                                            <% if (p===0) { %>
+                                                                                <td rowspan="<%= itemValue %>">
+                                                                                    <%= 1 %>
+                                                                                </td>
+                                                                                <td rowspan="<%= itemValue %>">
+                                                                                    <%= jsonData.date %>
+                                                                                </td>
+
+                                                                                <% } %>
+                                                                                    <% if (p===0) { %>
+                                                                                        <td style="text-align: justify;"
+                                                                                            rowspan="<%= itemValue %>">
+                                                                                            Table No: <%=
+                                                                                                jsonData.table.tableId
+                                                                                                %>
+
+                                                                                        </td>
+                                                                                        <% } %>
+                                                                                            <td>
+                                                                                                <%= item %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <%= jsonData.table.qty[p]
+                                                                                                    %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <%= jsonData.table.price[p]
+                                                                                                    %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <%= jsonData.table.note[p].extraNote.note
+                                                                                                    %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <% var
+                                                                                                    exPrices=jsonData.table.note[p].extraNote.exPrice;
+                                                                                                    var
+                                                                                                    total=exPrices.reduce((acc,currentValue)=>
+                                                                                                    acc
+                                                                                                    +currentValue,0); %>
+                                                                                                    <%= total %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <% var
+                                                                                                    exPrices=jsonData.table.note[p].extraNote.exPrice;
+                                                                                                    var
+                                                                                                    total=exPrices.reduce((acc,
+                                                                                                    currentValue)=> acc
+                                                                                                    + currentValue,0);
+                                                                                                    %>
+                                                                                                    <%= (jsonData.table.qty[p]*
+                                                                                                    jsonData.table.price[p])
+                                                                                                        + total %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <% var
+                                                                                                    exPrices=jsonData.table.note[p].extraNote.exPrice;
+                                                                                                    var
+                                                                                                    total=exPrices.reduce((acc,
+                                                                                                    currentValue)=> acc
+                                                                                                    + currentValue,0);
+                                                                                                    let amount
+                                                                                                        =
+                                                                                                        ((jsonData.table.qty[p]*jsonData.table.price[p])+
+                                                                                                        total)
+                                                                                                    %>
+                                                                                                    <% let gst = 0; %>
+                                                                                                    <% if( jsonData.table.gst[p] > 0) { %>
+                                                                                                        <% gst = (amount * 18/100) %>
+                                                                                                        <% } else { %>
+                                                                                                            <% gst = (amount * 0/100) %>
+                                                                                                        <% } %>
+                                                                                                    
+                                                                                                <%= (gst).toFixed(2)
+                                                                                                    %>
+                                                                                            </td>
+                                                                                            <% var
+                                                                                                exPrices=jsonData.table.note[p].extraNote.exPrice;
+                                                                                                var
+                                                                                                total=exPrices.reduce((acc,currentValue)=>
+                                                                                                acc + currentValue, 0);
+                                                                                                var finalTotal =
+                                                                                                jsonData.table.subTotal[p]
+                                                                                                + total %>
+
+                                                                                                <% if (p===0) { %>
+                                                                                                    <% let
+                                                                                                        totalBill=jsonData.table.items.reduce((acc,item,index)=>
+                                                                                                        {
+                                                                                                        var exPrices =
+                                                                                                        jsonData.table.note[index].extraNote.exPrice;
+                                                                                                        var total =
+                                                                                                        exPrices.reduce((acc,
+                                                                                                        currentValue) =>
+                                                                                                        acc
+                                                                                                        +currentValue,0);
+                                                                                                        let amount
+                                                                                                        =
+                                                                                                        ((jsonData.table.qty[index]*jsonData.table.price[index])+
+                                                                                                        total);
+                                                                                                        let withGst = 0;
+                                                                                                         if( jsonData.table.gst[index] > 0) { 
+                                                                                                            withGst = (amount * 18/100) 
+                                                                                                             } else { 
+                                                                                                            withGst = (amount * 0/100) 
+                                                                                                             }
+                                                                                                        return acc +
+                                                                                                        amount +
+                                                                                                        withGst;},0);
+                                                                                                        totalIncome +=
+                                                                                                        totalBill; %>
+                                                                                                        <td
+                                                                                                            rowspan="<%= itemValue %>">
+                                                                                                            <%= totalBill.toFixed(2)
+                                                                                                                %>
+                                                                                                        </td>
+                                                                                                        <% } %>
+                                                                        </tr>
+
+                                                                        <% }); %>
+
+
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div class="text-end mt-5">
+                                            <h4 class="fw-semibold">Total : <span class="total-price"> ₹ <%=
+                                                        totalIncome.toFixed(2) %></span></h4>
+                                        </div>
+
+                                        <footer class="my-head">
+                                            <div class="text-center">
+                                                <p class="mb-0"><span class="fw-semibold">We are always here to serve
+                                                        you,
+                                                        Thank You!</span></p>
+                                            </div>
+                                        </footer>
+                                        <!-- jQuery -->
+                                        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+                                        <!-- Bootstrap JS -->
+                                        <script
+                                            src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+
+</html>

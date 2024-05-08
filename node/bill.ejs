@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            margin-top: auto;
+
+        }
+
+        .topbar {
+            background-color: #e1c4b9;
+            padding: 10px;
+        }
+
+        .send-bill-logo {
+            width: 110px;
+        }
+
+        .addres-text {
+            font-size: 18px;
+        }
+
+        h1 {
+            letter-spacing: 5px;
+            font-size: 45px;
+            color: #343434;
+        }
+
+        .address-text {
+            width: 33%;
+        }
+
+        .main-add {
+            font-size: 18px;
+        }
+
+        .total-price {
+            color: #ff4900;
+        }
+
+        .my-head {
+            background-color: #e1c4b9;
+            padding: auto;
+        }
+
+        footer {
+            background: #dee2e6;
+        }
+
+        .bdr-left-custom {
+            border-left: 1px solid #dee2e6;
+        }
+
+        .no-border {
+            border: none;
+        }
+
+        .bdr-top-custom {
+            border-bottom: none;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <% let logo; %>
+        <% let shopName; %>
+            <% let address; %>
+            <% let startDate; %>
+            <% let endDate; %>
+            <% let gst = ''; %>
+                <% jsonData.forEach((data, i)=> { %>
+                    <% logo=data.logoPath; %>
+                        <% shopName=data.shopName; %>
+                            <% address=data.address; %>
+                            <% startDate=data.startDate; %>
+                            <% endDate=data.endDate; %>
+                            <% gst=data.gstNumber; %>
+
+                                <% }); %>
+
+                                    <div class="main">
+                                        <div class="topbar px-3 d-flex justify-content-between mb-3 align-items-center border-bottom"
+                                            style="background-color: #e1c4b9;">
+                                            <img src="<%= logo %>" alt="" class="send-bill-logo">
+                                            <div class="address-text "style="word-wrap: break-word; overflow-wrap: break-word;">
+                                                <p class="mb-1"><span class=" fw-semibold"> Main Branch : </span>
+                                                <p>
+                                                    <%= shopName %>, <%= address %>
+                                                </p>
+                                                </p>
+                                                <p class="mb-1"><span class="fw-semibold"> GSTIN : </span>
+                                                    <%= gst %>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="invoice text-center">
+                                        <h1 class="fw-bold">Invoice</h1>
+                                    </div>
+                                    <div class="d-flex w-100 px-3 justify-content-between">
+                                        <div class="">
+                                            <p class="my-2"><span class="fw-semibold"> Invoice From Date : </span>
+                                                <%= startDate %>
+                                            </p>
+                                        </div>
+                                        <div class="">
+                                            <p class="my-2"><span class="fw-semibold"> TO </p>
+                                        </div>
+                                        <div class="">
+                                            <p class="my-2"><span class="fw-semibold"> Invoice End Date : </span>
+                                                <%= endDate %>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <!-- <div class="mt-4">
+                                        <div class="row w-100 px-3 justify-content-between">
+                                            <div class="col-lg-6 col-sm-5">
+                                                <p class="mb-1"><span class="fw-semibold"> Invoice From Date : </span><%= startDate %> 
+                                                    <span class="fw-semibold">  TO </span>
+                                                    <p class="mb-1"><span class="fw-semibold"> TO </p>
+                                                </p>
+                                               
+                                                
+                                                <p class="mb-1"><span class="fw-semibold"> Invoice No. : </span>1</p>
+                                            </div>
+
+                                            <div class="col-lg-6 col-sm-5">
+                                                <p class="mb-1"><span class="fw-semibold"> Invoice End Date : </span><%= endDate %>
+                                                </p>
+                                                <p class="mb-1"><span class="fw-semibold"> Shop Address : </span> 714,
+                                                    715, Ratnanjali Square, Prernatirth Derasar Rd, Satellite,
+                                                    Ahmedabad, Gujarat 380015</p>
+                                                <p class="mb-1"><span class="fw-semibold"> Mobile No. : </span>+91
+                                                    2358467520</p>
+                                                <p class="mb-1"><span class="fw-semibold"> Email : </span>abc@gmail.com
+                                                </p>
+                                                <p class="mb-1"><span class="fw-semibold"> Gst No. :
+                                                    </span>12589463495107</p>
+                                            </div>
+                                            
+                                        </div>
+                                    </div> -->
+                                    <div class="my-2" style="font-size: 14px; padding: auto;">
+                                        <table  id="table-id1" >
+                                            <thead class="my-head" >
+                                                <tr >
+                                                    <tr>
+                                                        <th colspan="11">Invoice Details</th>
+                                                    </tr>
+                                                    <th scope="col" class="px-2 py-sm-3">Sr.No.</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Date</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Table</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Items</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Qty</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Price</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Extra Note</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Extra Price</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Sub Total</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Gst</th>
+                                                    <th scope="col" class="px-2 py-sm-3">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <!-- <tr>
+                                                <th colspan="9">Merged Header</th>
+                                            </tr>
+                                            <tr>
+                                                <th>Sr.No</th>
+                                                <th>Date</th>
+                                                <th>Table No</th>
+                                                <th>Item</th>
+                                                <th>Qty</th>
+                                                <th>Price</th>
+                                                <th>Sub Total</th>
+                                                <th>gst</th>
+                                                <th>Total</th>
+                                            </tr> -->
+                                            <% let totalIncome=0; %>
+                                            <tbody>
+                                                
+                                                    <% jsonData.forEach((data, i)=> { %>
+                                                        <% let globalIndex=0; %>
+                                                        <% let xValue=data.table.reduce((acc, t)=> acc + t.items.length,
+                                                            0);
+                                                            %>
+                                                            
+                                                            <% data.table.forEach((table, u)=> { %>
+                                                              
+                                                                <% let itemValue=table.items.length; %>
+                                                                <% let extraValue=table.note; %>
+                                                                <%  let extraNotes = '';  %>
+                                                                <% let exPrices = 0; %>
+                                                                <!-- <% extraValue.forEach((note,n)=>{ %> 
+                                                                        <% note.extraNote.note.forEach((extraNote,e)=>{ %> 
+                                                                            <% extraNotes = extraNotes + extraNote; %>
+                                                                            <% }); %>
+                                                                            <% note.extraNote.exPrice.forEach((exPrice,e)=>{ %> 
+                                                                                <% exPrices = exPrices + exPrice; %>
+                                                                                <% }); %>
+                                                                    <% }); %> -->
+                                                                    <% table.items.forEach((item, p)=> { %>
+                                                                       
+                                                                        <tr>
+                                                                            <% if (p === 0 && u === 0) { %>
+                                                                                <td rowspan="<%= xValue %>">
+                                                                                    <%= i+1 %>
+                                                                                </td>
+                                                                                <td rowspan="<%= xValue %>">
+                                                                                    <%= data.date %>
+                                                                                </td>
+                                                                                <% } %>
+                                                                                    <% if (p===0) { %>
+                                                                                        <td style="text-align: justify;"
+                                                                                            rowspan="<%= itemValue %>">
+                                                                                            Table No: <%= table.tableId
+                                                                                                %>
+                                                                                                <br>
+                                                                                                Customer Name: <%=
+                                                                                                    table.customerName
+                                                                                                    %>
+                                                                                                    <br>
+                                                                                                    Customer Mobile: <%=
+                                                                                                        table.customerMobile
+                                                                                                        %><br>
+                                                                                        </td>
+                                                                                        <% } %>
+                                                                                            <td>
+                                                                                                <%= item %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <%= table.qty[p] %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <%= table.price[p] %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <%= table.note[p].extraNote.note %>
+                                                                                                    <!-- <%= extraNotes %> -->
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <% 
+                                                                                                var exPrices = table.note[p].extraNote.exPrice;
+                                                                                                var total = exPrices.reduce((acc, currentValue) => acc + currentValue, 0);
+                                                                                            %>
+                                                                                            <%= total %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <% 
+                                                                                                var exPrices = table.note[p].extraNote.exPrice;
+                                                                                                var total = exPrices.reduce((acc, currentValue) => acc + currentValue, 0);
+                                                                                            %>
+                                                                                            <%= (table.qty[p]*
+                                                                                            table.price[p])
+                                                                                                + total %>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <% var
+                                                                                                exPrices=table.note[p].extraNote.exPrice;
+                                                                                                var
+                                                                                                total=exPrices.reduce((acc,
+                                                                                                currentValue)=> acc
+                                                                                                + currentValue,0);
+                                                                                                let amount
+                                                                                                    =
+                                                                                                    ((table.qty[p]*table.price[p])+
+                                                                                                    total)
+                                                                                                %>
+                                                                                                <% let gst = 0; %>
+                                                                                                <% if( table.gst[p] > 0) { %>
+                                                                                                    <% gst = (amount * 18/100) %>
+                                                                                                    <% } else { %>
+                                                                                                        <% gst = (amount * 0/100) %>
+                                                                                                    <% } %>
+                                                                                                
+                                                                                            <%= (gst).toFixed(2)
+                                                                                                %>
+                                                                                            </td>
+                                                                                            <% 
+                                                                                            var exPrices = table.note[p].extraNote.exPrice;
+                                                                                            var total = exPrices.reduce((acc, currentValue) => acc + currentValue, 0);
+                                                                                            var finalTotal = table.subTotal[p] + total
+                                                                                        %>
+
+                                                                                            <% if (p===0) { %>
+                                                                                                <% let
+
+                                                                                                    totalBill=table.items.reduce((acc,item, index)=> {
+                                                                                                        var exPrices = table.note[index].extraNote.exPrice;
+                                                                                                        var total = exPrices.reduce((acc,currentValue) =>
+                                                                                                        acc+currentValue,0);
+                                                                                                        let amount
+                                                                                                        =
+                                                                                                        ((table.qty[index]*table.price[index])+
+                                                                                                        total);
+                                                                                                        let withGst = 0;
+                                                                                                         if( table.gst[index] > 0) { 
+                                                                                                            withGst = (amount * 18/100) 
+                                                                                                             } else { 
+                                                                                                            withGst = (amount * 0/100) 
+                                                                                                             }
+                                                                                                        return acc +
+                                                                                                        amount +
+                                                                                                        withGst;},0);
+                                                                                                    totalIncome += totalBill;
+                                                                                                    %>
+                                                                                                    <td
+                                                                                                        rowspan="<%= itemValue %>">
+                                                                                                        <%= totalBill.toFixed(2)
+                                                                                                            %>
+                                                                                                    </td>
+                                                                                                    <% } %>
+                                                                        </tr>
+                                                                        
+                                                                            <% }); %>
+                                                                                <% }); %>
+                                                                                <% globalIndex++; %>
+                                                                                    <% }); %>
+                                            </tbody>
+
+                                        </table>
+                                    </div>
+
+                                    <div class="text-end mt-5">
+                                        <h4 class="fw-semibold">Total : <span class="total-price"> ₹ <%= totalIncome.toFixed(2)
+                                            %></span></h4>
+                                    </div>
+
+                                    <footer class="my-head">
+                                        <div class="text-center">
+                                            <p class="mb-0"><span class="fw-semibold">We are always here to serve you,
+                                                    Thank You!</span></p>
+                                        </div>
+                                    </footer>
+                                    <!-- jQuery -->
+                                    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+                                    <!-- Bootstrap JS -->
+                                    <script
+                                        src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+
+</html>

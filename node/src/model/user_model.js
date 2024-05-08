@@ -410,7 +410,6 @@ invoiceSchema.pre('save', async function (next) {
 
 // invoiceSchema.pre('save', function (next) {
 //     const currentDate = new Date();
-//     console.log("====currentDate====", currentDate);
 //     const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
 //     this.date = formattedDate;
 //     next();
@@ -443,8 +442,6 @@ tableSchema.methods.compareTable = async function (keyValue, tableId) {
     try {
         for (const value of tables) {
             if (keyValue !== null && keyValue === value.keyValue && tableId === value.tableId) {
-                console.log('===keyValue true===', keyValue, value.keyValue);
-                console.log('===tabelId true===', tableId, value.tableId);
                 return true;
             }
         }
@@ -461,8 +458,6 @@ tableSchema.methods.customerUpdate = async function (keyValue, tableId) {
     try {
         for (const value of tables) {
             if (keyValue !== null && keyValue === value.keyValue && tableId === value.tableId) {
-                console.log('===keyValue true===', keyValue, value.keyValue);
-                console.log('===tabelId true===', tableId, value.tableId);
                 return value;
             }
         }
@@ -474,14 +469,11 @@ tableSchema.methods.customerUpdate = async function (keyValue, tableId) {
 };
 menuSchema.methods.addMenuAndUpdate = async function (keyValue, menu) {
     const categories = await Menu.find();
-    console.log('===categories===', menu, categories);
 
 
     try {
         for (const value of categories) {
             if (keyValue !== null && keyValue === value.keyValue && tableId === value.tableId) {
-                console.log('===keyValue true===', keyValue, value.keyValue);
-                console.log('===tabelId true===', tableId, value.tableId);
                 return value;
             }
         }

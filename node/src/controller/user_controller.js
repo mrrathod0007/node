@@ -9,6 +9,7 @@ const secretKey = "secretKey";
 const path = require('path');
 const hbs = require("hbs");
 const { response } = require("express");
+const moment = require('moment');
 
 exports.adminRegister = async (req, res, next) => {
     try {
@@ -32,71 +33,67 @@ exports.adminRegister = async (req, res, next) => {
             let isExist = false;
             let branchuserIdFromLoop;
             let checkUserIdForBranch = [];
-            for (var i =0; i< branches.length; i++){
+            for (var i = 0; i < branches.length; i++) {
                 checkUserIdForBranch.push(branches[i].userId);
 
             }
-            
-            const allAdminMobile = await AdminUserModel.find({mobile:mobile });
-            const allAdminId = await AdminUserModel.find({userName:userName});
-            if(allAdminMobile.length > 0){
+
+            const allAdminMobile = await AdminUserModel.find({ mobile: mobile });
+            const allAdminId = await AdminUserModel.find({ userName: userName });
+            if (allAdminMobile.length > 0) {
                 isExist = true;
                 branchuserIdFromLoop = mobile;
-            } else if(allAdminId.length >0){
+            } else if (allAdminId.length > 0) {
                 isExist = true;
                 branchuserIdFromLoop = userName;
             }
-            let abc =[];
-            for(const value of branches){
-                      
-                if(abc.includes(value.userId)){
+            let abc = [];
+            for (const value of branches) {
+
+                if (abc.includes(value.userId)) {
                     isExist = true;
-                    branchuserIdFromLoop =  `${value.userId} Mobile Number can not use more then one`;
-                }else{
+                    branchuserIdFromLoop = `${value.userId} Mobile Number can not use more then one`;
+                } else {
                     abc.push(value.userId);
                 }
-                console.log('=allbranches==', abc);
             }
             for (const value of branches) {
-          
+
                 // if(checkUserIdForBranch.length >0){
                 //     if(checkUserIdForBranch.includes(value.userId)){
-                        
-                //         for (var i =0; i< branches.length; i++){
-                           
-                            
 
-            
+                //         for (var i =0; i< branches.length; i++){
+
+
+
+
                 //         }
 
-                        
+
                 //     }
                 // }
                 const allbranches = await AdminBranchesModel.find({ 'branches.userId': value.userId });
-                
-                
-                if(allAdminMobile.length > 0){
+
+
+                if (allAdminMobile.length > 0) {
                     isExist = true;
                     branchuserIdFromLoop = `${mobile} mobile number is Allready Register`;
-                } else if(allAdminId.length >0){
+                } else if (allAdminId.length > 0) {
                     isExist = true;
                     branchuserIdFromLoop = `${userName} userName is Allready Register`;
                 }
                 else if (allbranches.length > 0) {
-                    
+
                     isExist = true;
-                    branchuserIdFromLoop =  `${value.userId} mobile number is Allready Register`;
+                    branchuserIdFromLoop = `${value.userId} mobile number is Allready Register`;
                 }
             }
             if (isExist) {
-                console.log('=isExist true==', isExist);
                 res.json({ status: false, msg: `${branchuserIdFromLoop}` });
 
             } else {
-                console.log('=isExist==', isExist);
                 const adminResponse = await UserServices.adminRegister(userName, mobile, password);
                 const branchesRes = await UserServices.adminBranches(adminResponse._id, branches);
-                console.log('=admin branchesRes==', branchesRes);
                 res.json({ status: true, msg: "User Registration Successful" });
             }
 
@@ -162,12 +159,10 @@ exports.adminLogin = async (req, res, next) => {
 
         if (!user) {
             const branchLogin = await AdminBranchesModel.findOne({ 'branches.userId': mobileOrPassword });
-            console.log("=====branchLogin======", branchLogin);
             let branches;
             if (branchLogin && branchLogin.branches && branchLogin.branches.length > 0) {
                 branches = branchLogin.branches;
             }
-            console.log("=====branches======", branches);
             if (!branches) {
                 throw new Error("User does not exist");
             } else {
@@ -183,11 +178,10 @@ exports.adminLogin = async (req, res, next) => {
                 }
 
                 if (userName) {
-                    console.log("=====userPassword======", userPassword);
                     if (userPassword === password) {
                         let tokenData = { _id: branchId, userId: userName };
                         const tokenExpire = 365 * 24 * 60 * 60;
-                        const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", branchId);
+                        const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "5d", branchId);
                         const keyValue = branchId;
                         const responseLog = await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
 
@@ -202,14 +196,13 @@ exports.adminLogin = async (req, res, next) => {
         } else {
 
             const isMatch = await user.compareAdminPassword(password);
-            console.log("=====isMatch======", isMatch);
             if (isMatch === false) {
                 throw new Error("Password is Invalid");
             }
 
             let tokenData = { _id: user._id, mobile: user.mobile };
             const tokenExpire = 365 * 24 * 60 * 60;
-            const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "1d", user._id);
+            const token = await UserServices.generateAdmintoken(tokenData, "secretKey", "5d", user._id);
             const keyValue = user._id;
             const responseLog = await UserServices.adminUpdateToken(keyValue, token, mobileOrPassword, password);
 
@@ -226,16 +219,23 @@ exports.adminLogin = async (req, res, next) => {
 exports.addBranch = async (req, res, next) => {
 
     const isValidToken = await UserServices.checkToken(req.token);
-    console.log("==isValidToken==", isValidToken);
     if (isValidToken) {
         try {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
 
                 } else {
 
@@ -254,8 +254,6 @@ exports.addBranch = async (req, res, next) => {
                     }
 
                     const newLength = resLength + reqLength;
-                    console.log("==resLength==", resLength);
-                    console.log("==newLength==", newLength);
 
                     if (newLength > 3) {
                         return res.status(400).json({ status: false, msg: `You Have already ${resLength} You Can not more then 3 Branches`, response: null });
@@ -270,8 +268,6 @@ exports.addBranch = async (req, res, next) => {
                             }
                         }
                         if (isExist) {
-                            console.log('=isExist true==', isExist);
-                            // throw Error(`${branchuserIdFromLoop} UserId is Allready Register`);
                             return res.json({ status: false, msg: `${branchuserIdFromLoop} UserId is Allready Register` });
 
                         } else {
@@ -284,7 +280,6 @@ exports.addBranch = async (req, res, next) => {
                                     });
                                 }
 
-                                console.log("==branches==", branches);
                             } else {
                                 branchesRes = await UserServices.adminBranches(authData._id, branches);
                             }
@@ -293,8 +288,6 @@ exports.addBranch = async (req, res, next) => {
 
                     }
                     const response = await branchesRes.save();
-
-                    console.log("==log==", response);
                     const getAllBranches = await AdminBranchesModel.find({ keyValue: `${keyValue}` });
                     if (getAllBranches.length !== 0) {
                         let abc;
@@ -335,10 +328,18 @@ exports.getBranch = async (req, res, next) => {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
 
                 } else {
                     const keyValue = await authData._id;
@@ -386,10 +387,18 @@ exports.editBranch = async (req, res, next) => {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
 
                 } else {
 
@@ -399,26 +408,22 @@ exports.editBranch = async (req, res, next) => {
                         const data = req.body;
                         const { id, branchName } = req.body;
                         const getAllBranches = await AdminBranchesModel.findOne({ keyValue: `${keyValue}`, 'branches._id': id });
-                        console.log("=====getAllBranches====", getAllBranches);
                         const branches = getAllBranches.branches;
                         let updateBranch;
                         for (let i = 0; i < branches.length;) {
 
                             if (branches[i]._id == `${id}`) {
-                                console.log("=====branches[i].branchName====", branches[i]._id, id);
                                 branches[i].branchName = branchName;
                                 // const newList = await getAllBranches.save();
                             }
                             i++;
                         }
-                        console.log("=====branches====", updateBranch);
                         if (getAllBranches === null) {
                             res.json({ status: false, msg: "Menu List Not Found", response: null });
                         } else {
 
 
                             const newList = await getAllBranches.save();
-                            console.log("=====newList====", newList);
                             res.json({ status: true, msg: "Branch Update Successful", response: null });
                         }
 
@@ -450,10 +455,18 @@ exports.deleteBranch = async (req, res, next) => {
     if (isValidToken) {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
             } else {
                 const keyValue = authData._id;
                 const { id } = req.body;
@@ -475,7 +488,6 @@ exports.deleteBranch = async (req, res, next) => {
                         res.status(404).json({ status: false, msg: "Branch not found", response: null });
                     }
                 } catch (error) {
-                    console.error(error);
                     res.status(500).json({ status: false, msg: "Internal Server Error" });
                 }
             }
@@ -491,7 +503,6 @@ exports.deleteBranch = async (req, res, next) => {
 exports.login = async (req, res, next) => {
     try {
         const { mobileOrPassword, password } = req.body;
-        console.log("=====log======", req.body);
 
         if (!mobileOrPassword) {
             return res.status(400).json({ status: false, msg: "Username or Mobile is required." });
@@ -534,10 +545,18 @@ exports.addTable = async (req, res, next) => {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
 
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
 
             } else {
                 const keyValue = await authData._id;
@@ -548,12 +567,9 @@ exports.addTable = async (req, res, next) => {
                 const keepOrder = false;
                 const { tableId } = await req.body;
                 if (keyValue !== null) {
-                    console.log('======body======', req.body.tableId);
 
                     let table = await UserServices.tableCheck(keyValue);
-                    console.log('jlasjd', table);
                     if (table === null) {
-                        console.log('======table======', table);
                         try {
                             const { tableId } = await req.body;
                             if (!tableId) {
@@ -587,7 +603,6 @@ exports.addTable = async (req, res, next) => {
                         const isMatch = await table.compareTable(keyValue, req.body.tableId);
 
                         if (isMatch) {
-                            console.log('======isMatch true======', isMatch);
                             const getTable = await UserAddTable.find();
                             const filteredTable = getTable.map(table => ({
                                 tableId: table.tableId,
@@ -606,7 +621,6 @@ exports.addTable = async (req, res, next) => {
                         else {
 
                             try {
-                                console.log('======isMatch not======', !isMatch);
                                 const { tableId } = await req.body;
                                 if (!tableId) {
                                     return res.status(400).json({ status: false, msg: "Table Number is required." });
@@ -663,10 +677,18 @@ exports.getTable = async (req, res, next) => {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
 
                 } else {
                     const keyValue = await authData._id;
@@ -674,12 +696,10 @@ exports.getTable = async (req, res, next) => {
                     if (branchName && keyValue !== null) {
                         let branchKeyValue;
                         const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue, 'branches.branchName': branchName });
-                        console.log("=====branchUser======", branchUser);
                         let branches;
                         if (branchUser && branchUser.branches && branchUser.branches.length > 0) {
                             branches = branchUser.branches;
                         }
-                        console.log("=====branches======", branches);
                         if (!branches) {
                             throw new Error("User does not exist");
                         } else {
@@ -695,7 +715,6 @@ exports.getTable = async (req, res, next) => {
                             }
 
                             if (userName) {
-                                console.log("=====userName======", userName);
                                 if (branchName === userName) {
                                     branchKeyValue = branchId;
 
@@ -726,7 +745,6 @@ exports.getTable = async (req, res, next) => {
                         }
                     } else {
                         if (keyValue !== null) {
-                            // console.log('======body======', keyValue);
                             const getTable = await UserAddTable.find({ keyValue: `${keyValue}` });
 
                             if (getTable.length !== 0) {
@@ -779,7 +797,6 @@ exports.forgotPassword = async (req, res, next) => {
         else {
 
             let user = await UserServices.checkuser(mobileOrPassword);
-            console.log('===user===', user.branches);
             if (!user) {
                 return res.status(404).json({ status: false, msg: "'User not found'", response: null });
             } else {
@@ -789,10 +806,8 @@ exports.forgotPassword = async (req, res, next) => {
                 if (user.branches !== undefined) {
                     if (user.branches.length > 0) {
                         for (const value of user.branches) {
-                            console.log('===value===', value);
                             if (value.userId === mobileOrPassword) {
                                 id = value._id;
-                                console.log('===id===', id);
                             }
                         }
                         tokenData = { _id: id, mobile: user.mobile };
@@ -801,7 +816,6 @@ exports.forgotPassword = async (req, res, next) => {
                     tokenData = { _id: user._id, mobile: user.mobile };
                 }
 
-                console.log('===id===', id);
 
                 const token = await UserServices.generatetoken(tokenData, "secretKey", "1h");
 
@@ -830,27 +844,22 @@ exports.resetPassword = async (req, res, next) => {
                 const { newPassword } = req.body;
                 const user = await AdminUserModel.findOne({ _id: authData._id });
                 const branchUser = await AdminBranchesModel.findOne({ 'branches._id': authData._id });
-                console.log('===user===', branchUser);
                 if (user) {
                     user.password = newPassword;
                     await user.save();
                 } else {
                     let branches;
                     for (const value of branchUser.branches) {
-                        console.log('===abcde===',value._id ,`${authData._id}`);
                         if (value._id == `${authData._id}`) {
 
                             branches = value;
-                            console.log('===abcde===', branches);
                         }
-                        // console.log('===value===', value);
-                        // branches = value;
-                       
+
                     }
                     branches.pass = newPassword;
                     await branchUser.save();
 
-                    
+
                 }
                 // if (!user) {
                 //     return res.status(400).json({ error: 'Invalid or expired token' });
@@ -870,10 +879,18 @@ exports.addCustomer = async (req, res, next) => {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
 
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
 
             } else {
                 const keyValue = await authData._id;
@@ -930,10 +947,18 @@ exports.deleteTable = async (req, res, next) => {
     if (isValidToken) {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
             } else {
                 const keyValue = authData._id;
                 const { tableId } = req.body;
@@ -948,7 +973,6 @@ exports.deleteTable = async (req, res, next) => {
                         res.status(404).json({ status: false, msg: "Table not found", response: null });
                     }
                 } catch (error) {
-                    console.error(error);
                     res.status(500).json({ status: false, msg: "Internal Server Error" });
                 }
             }
@@ -969,10 +993,18 @@ exports.addMenu = async (req, res, next) => {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
 
                 } else {
 
@@ -980,14 +1012,11 @@ exports.addMenu = async (req, res, next) => {
 
                         const keyValue = await authData._id;
                         const menu = new Menu(req.body);
-                        console.log("=====Extra menu====", menu);
                         const list = await Menu.find({ keyValue: `${keyValue}`, categoriesType: menu.categoriesType });
-                        console.log("=====list====", menu.categoriesType.toLowerCase);
                         if (list.length !== 0) {
                             res.json({ status: false, msg: "This Menu is already Exist", response: null });
                         } else {
                             const successRes = await UserServices.addMenu(`${keyValue}`, menu);
-                            console.log("=====menu====", successRes);
                             // const menuList = {
                             //     id:menu._id,
                             //     categoriesType: menu.categoriesType,
@@ -1027,26 +1056,31 @@ exports.getMenu = async (req, res, next) => {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
 
                 } else {
 
                     try {
 
                         const keyValue = await authData._id;
-                        console.log("=====keyValue======", keyValue);
                         const branchUser = await AdminBranchesModel.findOne({ 'branches._id': keyValue });
-                        console.log("=====branchUser======", branchUser);
                         let list;
                         if (branchUser !== null) {
                             list = await Menu.find({ keyValue: `${branchUser.keyValue}` });
                         } else {
                             list = await Menu.find({ keyValue: `${keyValue}` });
                         }
-                        console.log("=====list======", list);
 
                         if (list.length === 0) {
                             res.json({ status: false, msg: "Menu List Not Found", response: null });
@@ -1063,10 +1097,6 @@ exports.getMenu = async (req, res, next) => {
 
                             }));
 
-                            // const tableId = menu.id;
-                            // const successRes = await UserServices.addMenu(`${keyValue}`, menu);
-                            // const newMenu = await Menu.findOne({ keyValue: keyValue });
-                            // console.log("=====menuList====", list);
                             res.json({ status: true, msg: "Menu Retrieve Successful", response: { menuList } });
                         }
 
@@ -1099,10 +1129,18 @@ exports.updateCategory = async (req, res, next) => {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
 
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
 
                 } else {
 
@@ -1112,7 +1150,6 @@ exports.updateCategory = async (req, res, next) => {
                         const data = req.body;
                         const { id, categoriesType, item, price, qty, extraNote } = req.body;
                         const list = await Menu.findOne({ keyValue: `${keyValue}`, _id: data.id });
-                        console.log("=====menuList====", data.item);
                         if (list === null) {
                             res.json({ status: false, msg: "Menu List Not Found", response: null });
                         } else {
@@ -1150,7 +1187,6 @@ exports.updateCategory = async (req, res, next) => {
                                 price: newList.price,
                                 qty: newList.qty,
                             };
-                            console.log("=====object====", menuList);
                             res.json({ status: true, msg: "Menu Update Successful", response: null });
                         }
 
@@ -1199,7 +1235,6 @@ exports.deleteMenu = async (req, res, next) => {
                         res.status(404).json({ status: false, msg: "Menu not found", response: null });
                     }
                 } catch (error) {
-                    console.error(error);
                     res.status(500).json({ status: false, msg: "Internal Server Error" });
                 }
             }
@@ -1218,20 +1253,28 @@ exports.addInvoice = async (req, res, next) => {
     if (isValidToken) {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
             } else {
+                const baseUrl = req.headers.host;
                 const keyValue = authData._id;
                 const currentDate = new Date();
                 const day = String(currentDate.getDate()).padStart(2, '0');
                 const month = String(currentDate.getMonth() + 1).padStart(2, '0');
                 const year = currentDate.getFullYear();
-                const formattedDate = `${day}/${month}/${year}`;
-                const { tableId, customerName, customerMobile, tableMember,payModeCash, items, note, price, qty, subTotal, gst, total } = req.body;
+                const formattedDate = `${month}/${day}/${year}`;
+                const { tableId, customerName, customerMobile, tableMember, payModeCash, items, note, price, qty, subTotal, gst, total } = req.body;
                 const date = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
-                console.log("==note==", note);
                 const table = [{
                     billNumber: "ABC123",
                     tableId: tableId,
@@ -1239,7 +1282,7 @@ exports.addInvoice = async (req, res, next) => {
                     customerMobile: customerMobile,
                     tableMember: tableMember,
                     items: items,
-                    payModeCash : payModeCash,
+                    payModeCash: payModeCash,
                     note: note,
                     price: price,
                     qty: qty,
@@ -1254,7 +1297,7 @@ exports.addInvoice = async (req, res, next) => {
                 if (existingInvoice) {
 
                     const abc = await existingInvoice.addItemsToInvoice(table);
-                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items,payModeCash, note, price, qty, subTotal, gst, total }) => ({
+                    const responseTable = existingInvoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, payModeCash, note, price, qty, subTotal, gst, total }) => ({
                         billNumber,
                         tableId,
                         customerName,
@@ -1278,20 +1321,30 @@ exports.addInvoice = async (req, res, next) => {
 
 
                     const index = abc.length;
-                    // console.log('===abc===',abc[(index-1)]);
+                    const userForLogo = await AdminBranchesModel.findOne({ 'branches._id': keyValue });
+                    const savedProfile = await Profile.findOne({ keyValue: `${userForLogo.keyValue}` });
+                    const logoPath = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
+                    const shopName = `${savedProfile.shopName}`;
+                    const address = `${savedProfile.street},${savedProfile.city},${savedProfile.state},${savedProfile.pinCode}`;
+                    const gstNumber = `${savedProfile.gstNumber}`;
+
+
+
                     const forPdfInvoice = {
+                        logoPath: logoPath,
+                        shopName: shopName,
+                        address: address,
+                        id: existingInvoice.id,
                         no: existingInvoice.no,
-                        date: existingInvoice.date,
+                        gstNumber: gstNumber,
+                        date: moment(existingInvoice.date, 'MM/DD/YYYY').format('DD/MM/YYYY'),
                         table: abc[(index - 1)]
                     }
-                    const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
+
+                    const invoicePdf = await UserServices.customerInvoice(keyValue, forPdfInvoice, req.headers.host);
+                    // const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
                     const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
-                    console.log('===invoicePdf===', invoicePdf);
-                    if (deletedOrder) {
-                        console.log("==tableOrder Deleted==");
-                    } else {
-                        console.log("==tableOrder not found==");
-                    }
+                   
 
                     res.status(200).json({ status: true, msg: "New table added to existing invoice", response: { invoicePdf } });
                 } else {
@@ -1336,22 +1389,30 @@ exports.addInvoice = async (req, res, next) => {
 
                         };
                         const index = table.length;
-                        // console.log('===abc===',abc[(index-1)]);
+                        const userForLogo = await AdminBranchesModel.findOne({ 'branches._id': keyValue });
+                        const savedProfile = await Profile.findOne({ keyValue: `${userForLogo.keyValue}` });
+                        const logoPath = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
+                        const shopName = `${savedProfile.shopName}`;
+                        const address = `${savedProfile.street},${savedProfile.city},${savedProfile.state},${savedProfile.pinCode}`;
+                        const gstNumber = `${savedProfile.gstNumber}`;
+
+
                         const forPdfInvoice = {
+                            logoPath: logoPath,
+                            shopName: shopName,
+                            address: address,
+                            id: responseInvoice.id,
                             no: responseInvoice.no,
-                            date: responseInvoice.date,
+                            gstNumber: gstNumber,
+                            date: moment(responseInvoice.date, 'MM/DD/YYYY').format('DD/MM/YYYY'),
                             table: responseTable[0]
                         }
-                        const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
+                        const invoicePdf = await UserServices.customerInvoice(keyValue, forPdfInvoice, req.headers.host);
+                        // const invoicePdf = await UserServices.craetePDF(keyValue, forPdfInvoice, req.headers.host);
                         const deletedOrder = await KeepOrder.findOneAndDelete({ keyValue: keyValue, tableId: tableId });
-                        if (deletedOrder) {
-                            console.log("==tableOrder Deleted==");
-                        } else {
-                            console.log("==tableOrder not found==");
-                        }
+                      
                         res.status(200).json({ status: true, msg: "Invoice added", response: { invoicePdf } });
                     } catch (error) {
-                        console.error("Error adding invoice:", error);
                         res.status(500).json({ status: false, msg: "Internal server error" });
                     }
                 }
@@ -1373,22 +1434,35 @@ exports.getInvoice = async (req, res, next) => {
     if (isValidToken) {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
+
+
             } else {
                 const baseUrl = req.headers.host;
                 const keyValue = authData._id;
                 const { branchName, startDate, endDate, tableId } = req.body;
-                console.log("==keyValue==", startDate, endDate);
-                console.log("==startDate==", startDate, endDate); // Assuming startDate and endDate are provided
 
-                const formattedStartDate = new Date(startDate);
-                const formattedEndDate = new Date(endDate);
-                formattedEndDate.setDate(formattedEndDate.getDate() + 1);
 
-                console.log("==tableId==", branchName);
+                const startDateParts = startDate.split('/');
+                const formattedStartDate = `${startDateParts[1]}/${startDateParts[0]}/${startDateParts[2]}`;
+
+                const endDateParts = endDate.split('/');
+                const formattedEndDate = `${endDateParts[1]}/${endDateParts[0]}/${endDateParts[2]}`;
+
+                // const formattedStartDate = new Date(startDate);
+                // const formattedEndDate = new Date(endDate);
+                // formattedEndDate.setDate(formattedEndDate.getDate() + 1);
                 let existingInvoices;
                 const branchUser = await AdminBranchesModel.findOne({ keyValue: keyValue, 'branches.branchName': branchName });
                 let branchKeyValue;
@@ -1398,39 +1472,46 @@ exports.getInvoice = async (req, res, next) => {
                     branches = branchUser.branches;
                     for (const value of branches) {
                         if (value.branchName === branchName) {
-                            console.log("==value==", value._id);
                             branchKeyValue = `${value._id}`;
                             keyForLogo = `${value.keyValue}`
                         }
                     }
-
-                    console.log("==branches==", branches._id);
                 } else {
                     branchKeyValue = null;
                 }
-                console.log("==branchKeyValue==", branchKeyValue !== null ? branchKeyValue : keyValue);
                 if (tableId !== undefined) {
                     existingInvoices = await Invoice.find({
                         keyValue: branchKeyValue !== null ? branchKeyValue : keyValue,
-                        date: { $gte: startDate, $lte: endDate }
+                        date: { $gte: formattedStartDate, $lte: formattedEndDate }
                     });
                     const filteredInvoices = existingInvoices.map(invoice => ({
                         id: invoice.id,
-                        date: invoice.date,
+                        date: moment(invoice.date, 'MM/DD/YYYY').format('DD/MM/YYYY'),
                         table: invoice.table.filter(item => item.tableId === tableId)
                     }));
-                    console.log("==filteredInvoices==", filteredInvoices.table);
+
                     const responseInvoices = filteredInvoices.filter(invoice => invoice.table.length > 0);
-                    const abc = path.join(__dirname, '..', 'logo', 'icon.png');
-                    const logoPath = `http://192.168.29.214:2000/logo/icon.png`
+
+                    const userForLogo = await AdminBranchesModel.findOne({ 'branches._id': branchKeyValue !== null ? branchKeyValue : keyValue });
+              
+                    const savedProfile = await Profile.findOne({ keyValue: `${userForLogo.keyValue}` });
+                    const logoPath = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
+                    const shopName = `${savedProfile.shopName}`;
+                    const address = `${savedProfile.street},${savedProfile.city},${savedProfile.state},${savedProfile.pinCode}`;
+                    const gstNumber = `${savedProfile.gstNumber}`;
                     const invoice = responseInvoices.map(invoice => ({
+                        logoPath: logoPath,
+                        shopName: shopName,
+                        address: address,
+                        startDate: startDate,
+                        endDate: endDate,
+                        gstNumber: gstNumber,
                         id: invoice.id,
-                        no:invoice.no,
+                        no: invoice.no,
                         date: invoice.date,
-                        table: invoice.table.map(({ billNumber, tableId,logoPath, customerName, customerMobile, tableMember, items,payModeCash, note, price, qty, subTotal, gst, total }) => ({
+                        table: invoice.table.map(({ billNumber, tableId, customerName, customerMobile, tableMember, items, payModeCash, note, price, qty, subTotal, gst, total }) => ({
                             billNumber,
                             tableId,
-                            logoPath,
                             customerName,
                             customerMobile,
                             tableMember,
@@ -1446,12 +1527,10 @@ exports.getInvoice = async (req, res, next) => {
                     }));
 
                     if (invoice.length > 0) {
-                        const date = invoice[0].date;
 
-                        const newInvoicePdf = await UserServices.htmlPdf(keyValue,invoice, req.headers.host, startDate, endDate);
-                        const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
+                        const invoicePdf = await UserServices.htmlPdf(keyValue, invoice, req.headers.host, startDate, endDate);
+                        // const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
 
-                        console.log("==pdf==", newInvoicePdf);
                         // const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
                         //  const pdf = await this.getPdf(invoicePdf);
                         // const pdfUrl = `http://192.168.1.7:3000/pdf`;
@@ -1464,23 +1543,29 @@ exports.getInvoice = async (req, res, next) => {
                 } else {
                     existingInvoices = await Invoice.find({
                         keyValue: branchKeyValue !== null ? branchKeyValue : keyValue,
-                        date: { $gte: startDate, $lte: endDate }
+                        date: { $gte: formattedStartDate, $lte: formattedEndDate }
                     });
-                    const userForLogo = await AdminBranchesModel.findOne({'branches._id': keyValue });
-                    const savedProfile = await Profile.findOne({ keyValue: `${ userForLogo.keyValue}` });
+                    const userForLogo = await AdminBranchesModel.findOne({ 'branches._id': branchKeyValue !== null ? branchKeyValue : keyValue });
+              
+                    const savedProfile = await Profile.findOne({ keyValue: `${userForLogo.keyValue}` });
                     const logoPath = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
                     const shopName = `${savedProfile.shopName}`;
-                    const address = `${savedProfile.street},${savedProfile.city}${savedProfile.state},${savedProfile.pinCode}`;
-                   
+                    const address = `${savedProfile.street},${savedProfile.city},${savedProfile.state},${savedProfile.pinCode}`;
+                    const gstNumber = `${savedProfile.gstNumber}`;
                     if (existingInvoices.length > 0) {
+
                         const invoice = existingInvoices.map(invoice => ({
-                            logoPath:logoPath,
-                            shopName:shopName,
-                            address:address,
+
+                            logoPath: logoPath,
+                            shopName: shopName,
+                            address: address,
+                            startDate: startDate,
+                            endDate: endDate,
+                            gstNumber: gstNumber,
                             id: invoice.id,
-                            no:invoice.no,
-                            date: invoice.date,
-                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items,payModeCash, note, price, qty, subTotal, gst, total }) => ({
+                            no: invoice.no,
+                            date: moment(invoice.date, 'MM/DD/YYYY').format('DD/MM/YYYY'),
+                            table: invoice.table.map(({ tableId, customerName, customerMobile, tableMember, items, payModeCash, note, price, qty, subTotal, gst, total }) => ({
                                 tableId,
                                 customerName,
                                 customerMobile,
@@ -1495,10 +1580,9 @@ exports.getInvoice = async (req, res, next) => {
                                 total
                             }))
                         }));
-                        const newInvoicePdf = await UserServices.htmlPdf(keyValue,invoice, req.headers.host, startDate, endDate);
-                        const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
+                        const invoicePdf = await UserServices.htmlPdf(keyValue, invoice, req.headers.host, startDate, endDate);
+                        // const invoicePdf = await UserServices.craetePDFforGetInvoice(keyValue, invoice, req.headers.host, startDate, endDate);
 
-                        console.log("==pdf==", newInvoicePdf);
                         res.status(200).json({ status: true, msg: "Invoices Retrieve Successful for this Date Range", response: { invoicePdf } });
 
                     } else {
@@ -1514,16 +1598,14 @@ exports.getInvoice = async (req, res, next) => {
     } else {
         res.status(200).json({
             status: false,
-            msg: "Your Subscription Expire Please Contect Admin",
+            msg: "Token Invalid",
             response: null
         });
     }
 };
 exports.getPdf = async (invoicePdf, req, res, next) => {
     const documentsFolderPath = path.join(__dirname, '..', 'documents');
-    console.log("==", documentsFolderPath)
     const pdfPath = path.join(__dirname, '..', 'documents', '01.pdf');
-    console.log("==", pdfPath)
     res.sendFile(invoicePdf);
 
 };
@@ -1532,15 +1614,22 @@ exports.keepOrder = async (req, res, next) => {
     if (isValidToken) {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
             } else {
                 const keyValue = authData._id;
 
                 const { tableId, menuList } = req.body;
-                console.log("menuAdded===", menuList);
                 const newMenuList = {
                     keyValue: keyValue,
                     tableId: tableId,
@@ -1581,10 +1670,18 @@ exports.getKeepOrder = async (req, res, next) => {
     if (isValidToken) {
         jwt.verify(req.token, secretKey, async (error, authData) => {
             if (error) {
-                res.json({
-                    status: false,
-                    msg: "Token Invalid"
-                });
+                if (error.message === "jwt expired") {
+                    res.status(200).json({
+                        status: false,
+                        msg: "Your Subscription Expire Please Contect Admin",
+                        response: null
+                    });
+                } else {
+                    res.json({
+                        status: false,
+                        msg: "Token Invalid"
+                    });
+                }
             } else {
                 const keyValue = authData._id;
                 const { tableId } = req.body;
@@ -1630,15 +1727,23 @@ exports.profileUpdate = async (req, res, next) => {
         if (isValidToken) {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
                 } else {
                     const keyValue = authData._id;
                     const savedProfile = await Profile.findOne({ keyValue: keyValue });
                     if (savedProfile) {
-    
+
                         const currentDate = new Date();
                         const year = currentDate.getFullYear();
                         const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
@@ -1646,29 +1751,28 @@ exports.profileUpdate = async (req, res, next) => {
                         const hours = currentDate.getHours().toString().padStart(2, '0');
                         const minutes = currentDate.getMinutes().toString().padStart(2, '0');
                         const seconds = currentDate.getSeconds().toString().padStart(2, '0');
-    
+
                         // Construct the date and time strings
                         const currentDateStr = `${day}${month}${year}`;
                         const currentTimeStr = `${hours}${minutes}${seconds}`;
                         const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
-    
+
                         const { profileLogo, shopName, gstNumber, street, city, state, pinCode } = req.body;
-                        console.log('==base64===', profileLogo);
                         const baseUrl = req.headers.host;
                         let imageUrl = '';
                         let imageFolderPath;
                         let base64Image;
                         const getAdminUser = await AdminUserModel.find({ keyValue: keyValue });
                         if (getAdminUser) {
-    
-    
+
+
                             if (profileLogo !== undefined) {
                                 let imageBase64 = profileLogo;
-                                 base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+                                base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
                                 const imageName = `${invoiceDateandTime}` + '.png';
                                 imageFolderPath = path.join(__dirname, '..', 'profileLogo');
                                 savedProfile.imageFolderPath = imageFolderPath;
-    
+
                             } else {
                                 savedProfile.imageFolderPath = savedProfile.imageFolderPath;
                             }
@@ -1702,26 +1806,23 @@ exports.profileUpdate = async (req, res, next) => {
                             } else {
                                 savedProfile.pinCode = savedProfile.pinCode;
                             }
-    
+
                             const updatedProfile = await savedProfile.save();
                             if (!fs.existsSync(imageFolderPath)) {
                                 fs.mkdirSync(imageFolderPath);
                             }
                             const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
                             const buffer = Buffer.from(base64Image, 'base64');
-    
+
                             fs.writeFile(imagePath, buffer, (err) => {
-                                console.log('==image path===', updatedProfile.imageFolderPath);
-    
+
                                 if (err) {
-                                    console.error(err);
                                     res.status(500).json('Error uploading image');
                                 } else {
-                                    console.log('==image path===', updatedProfile.imageName);
                                     // Construct the URL for the image
-    
+
                                     imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
-    
+
                                     const profile = {
                                         shopName: updatedProfile.shopName,
                                         profileLogo: imageUrl,
@@ -1730,7 +1831,7 @@ exports.profileUpdate = async (req, res, next) => {
                                         city: updatedProfile.city,
                                         state: updatedProfile.state,
                                         pinCode: updatedProfile.pinCode
-    
+
                                     };
                                     res.status(200).json({
                                         status: true, msg: "Your Profile Update Successfuly", response: { profile }
@@ -1738,7 +1839,7 @@ exports.profileUpdate = async (req, res, next) => {
                                     // resolve(imageUrl);
                                 }
                             });
-    
+
                         } else {
                             res.json({
                                 status: false,
@@ -1747,7 +1848,6 @@ exports.profileUpdate = async (req, res, next) => {
                             });
                         }
                     } else {
-                        console.log('==keyValue===', keyValue);
                         const currentDate = new Date();
                         const year = currentDate.getFullYear();
                         const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
@@ -1755,15 +1855,14 @@ exports.profileUpdate = async (req, res, next) => {
                         const hours = currentDate.getHours().toString().padStart(2, '0');
                         const minutes = currentDate.getMinutes().toString().padStart(2, '0');
                         const seconds = currentDate.getSeconds().toString().padStart(2, '0');
-    
+
                         // Construct the date and time strings
                         const currentDateStr = `${day}${month}${year}`;
                         const currentTimeStr = `${hours}${minutes}${seconds}`;
                         const invoiceDateandTime = `${currentDateStr}${currentTimeStr}`;
-    
+
                         const { profileLogo, shopName, gstNumber, street, city, state, pinCode } = req.body;
-                        console.log('==profileLogo===', shopName);
-                        
+
 
                         const baseUrl = req.headers.host;
                         let imageUrl = '';
@@ -1779,19 +1878,16 @@ exports.profileUpdate = async (req, res, next) => {
                             }
                             const imagePath = path.join(`${updatedProfile.imageFolderPath}`, `${updatedProfile.imageName}`);
                             const buffer = Buffer.from(base64Image, 'base64');
-    
+
                             fs.writeFile(imagePath, buffer, (err) => {
-                                console.log('==image path===', updatedProfile.imageFolderPath);
-    
+
                                 if (err) {
-                                    console.error(err);
                                     res.status(500).json('Error uploading image');
                                 } else {
-                                    console.log('==image path===', updatedProfile.imageName);
                                     // Construct the URL for the image
-    
+
                                     imageUrl = `http://${baseUrl}/profileLogo/${updatedProfile.imageName}`;
-    
+
                                     const profile = {
                                         shopName: updatedProfile.shopName,
                                         profileLogo: imageUrl,
@@ -1800,7 +1896,7 @@ exports.profileUpdate = async (req, res, next) => {
                                         city: updatedProfile.city,
                                         state: updatedProfile.state,
                                         pinCode: updatedProfile.pinCode
-    
+
                                     };
                                     res.status(200).json({
                                         status: true, msg: "Your Profile Update Successfuly", response: { profile }
@@ -1808,7 +1904,7 @@ exports.profileUpdate = async (req, res, next) => {
                                     // resolve(imageUrl);
                                 }
                             });
-    
+
                         } else {
                             res.json({
                                 status: false,
@@ -1816,9 +1912,9 @@ exports.profileUpdate = async (req, res, next) => {
                                 response: null
                             });
                         }
-    
+
                     }
-    
+
                 }
             });
         } else {
@@ -1835,7 +1931,7 @@ exports.profileUpdate = async (req, res, next) => {
             response: null
         });
     }
-   
+
 };
 
 exports.getProfile = async (req, res, next) => {
@@ -1844,21 +1940,25 @@ exports.getProfile = async (req, res, next) => {
         if (isValidToken) {
             jwt.verify(req.token, secretKey, async (error, authData) => {
                 if (error) {
-                    res.json({
-                        status: false,
-                        msg: "Token Invalid"
-                    });
+                    if (error.message === "jwt expired") {
+                        res.status(200).json({
+                            status: false,
+                            msg: "Your Subscription Expire Please Contect Admin",
+                            response: null
+                        });
+                    } else {
+                        res.json({
+                            status: false,
+                            msg: "Token Invalid"
+                        });
+                    }
                 } else {
                     const keyValue = authData._id;
-                    console.log('==keyValue===', keyValue);
                     const baseUrl = req.headers.host;
                     let imageUrl = '';
                     const savedProfile = await Profile.findOne({ keyValue: keyValue });
-                    console.log('==savedProfile===', savedProfile);
                     if (savedProfile) {
                         const imagePath = path.join(`${savedProfile.imageFolderPath}`, `${savedProfile.imageName}`);
-    
-                        console.log('==image path===', savedProfile.imageName);
                         imageUrl = `http://${baseUrl}/profileLogo/${savedProfile.imageName}`;
                         const profile = {
                             shopName: savedProfile.shopName,
@@ -1868,7 +1968,7 @@ exports.getProfile = async (req, res, next) => {
                             city: savedProfile.city,
                             state: savedProfile.state,
                             pinCode: savedProfile.pinCode
-    
+
                         };
                         res.status(200).json({
                             status: true, msg: "Your Profile Retrieve Successful", response: { profile }
@@ -1878,7 +1978,7 @@ exports.getProfile = async (req, res, next) => {
                             status: false, msg: "Profile Not Found Please update Your Profile", response: null
                         });
                     }
-    
+
                 }
             });
         } else {
@@ -1887,7 +1987,7 @@ exports.getProfile = async (req, res, next) => {
                 msg: "Your Subscription Expire Please Contect Admin",
                 response: null
             });
-        } 
+        }
     } catch (error) {
         res.status(200).json({
             status: false,
@@ -1895,5 +1995,5 @@ exports.getProfile = async (req, res, next) => {
             response: null
         });
     }
-    
+
 };

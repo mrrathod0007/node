@@ -1,13 +1,15 @@
 const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf,Profile } = require("../model/user_model");
 const PDFDocument = require('pdfkit');
 const ejs = require('ejs');
-const pdf = require('html-pdf');
-
+// const pdf = require('html-pdf');
+const pdf = require('pdf-creator-node');
+const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 const jwt = require("jsonwebtoken");
 const handlebars = require('handlebars');
 const { Console } = require("console");
+const { type } = require("os");
 
 class UserServices {
     static async adminRegister(userName, mobile, password) {
@@ -92,17 +94,13 @@ class UserServices {
             if (user) {
                 if (user.token) {
                     const isValidToken = await UserServices.checkToken(user.token);
-                    console.log('==user.token==', user.token);
                     if (isValidToken) {
                         let newToken;
                         let decodedToken;
                         jwt.verify(user.token, secretKey, async (error, authData) => {
-                            console.log('==error==', error);
                             if (error !== null && error.name === "TokenExpiredError") {
-                                console.log('==error==', error.name);
                                 if (user.nextExpiry > 0) {
                                     const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                                    console.log('==next==', user.nextExpiry);
                                     newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
                                     user.token = newToken;
                                     user.lastExpiry = user.nextExpiry;
@@ -121,11 +119,8 @@ class UserServices {
 
                         // const decodedToken = jwt.verify(user.token, secretKey);
                         if(decodedToken !== undefined){
-                            console.log('==decodedToken==', decodedToken);
                             const logintime = user.created;
-                            console.log('==logintime==', logintime / 1000);
                             const currentTime = Math.floor(Date.now() / 1000);
-                            console.log('==currentTime==', currentTime);
                             const remainingTime = decodedToken.exp - currentTime;
                             const remainingDays = Math.floor(remainingTime / (24 * 60 * 60));
                             const remainingHours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
@@ -137,7 +132,6 @@ class UserServices {
                             } else {
                                 if (user.nextExpiry > 0) {
                                     const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                                    console.log('==next==', user.nextExpiry);
                                     newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
                                     user.token = newToken;
                                     user.lastExpiry = user.nextExpiry;
@@ -145,7 +139,6 @@ class UserServices {
                                     const newUser = await user.save();
                                     return newToken;
                                 } else {
-                                    console.log('==next==', user.nextExpiry);
                                     throw new Error("Session expired");
                                 }
     
@@ -178,17 +171,13 @@ class UserServices {
             if (user) {
                 if (user.token) {
                     const isValidToken = await UserServices.checkToken(user.token);
-                    console.log('==user.token==', user.token);
                     if (isValidToken) {
                         let newToken;
                         let decodedToken;
                         jwt.verify(user.token, secretKey, async (error, authData) => {
-                            console.log('==error==', error);
                             if (error !== null && error.name === "TokenExpiredError") {
-                                console.log('==error==', error.name);
                                 if (user.nextExpiry > 0) {
                                     const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                                    console.log('==next==', user.nextExpiry);
                                     newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
                                     user.token = newToken;
                                     user.lastExpiry = user.nextExpiry;
@@ -205,11 +194,8 @@ class UserServices {
                         });
 
                         // const decodedToken = jwt.verify(user.token, secretKey);
-                        console.log('==decodedToken==', decodedToken);
                         const logintime = user.created;
-                        console.log('==logintime==', logintime / 1000);
                         const currentTime = Math.floor(Date.now() / 1000);
-                        console.log('==currentTime==', currentTime);
                         const remainingTime = decodedToken.exp - currentTime;
                         const remainingDays = Math.floor(remainingTime / (24 * 60 * 60));
                         const remainingHours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
@@ -221,7 +207,6 @@ class UserServices {
                         } else {
                             if (user.nextExpiry > 0) {
                                 const expiry = (user.nextExpiry) * (24 * 60 * 60);
-                                console.log('==next==', user.nextExpiry);
                                 newToken = jwt.sign(tokenData, secretKey, { expiresIn: expiry });
                                 user.token = newToken;
                                 user.lastExpiry = user.nextExpiry;
@@ -229,7 +214,6 @@ class UserServices {
                                 const newUser = await user.save();
                                 return newToken;
                             } else {
-                                console.log('==next==', user.nextExpiry);
                                 throw new Error("Session expired");
                             }
 
@@ -258,9 +242,8 @@ class UserServices {
                 throw new Error("User not found");
             } else {
                 const loginUser = await Login.findOne({ keyValue: keyValue });
-                console.log('==Login==', loginUser);
                 if (!loginUser) {
-                    const lastExpiry = 1;
+                    const lastExpiry = 5;
                     const nextExpiry = 0;
                     const newLogin = await Login.create({ keyValue, mobileOrPassword, password, token, lastExpiry, nextExpiry });
                     return newLogin;
@@ -283,9 +266,8 @@ class UserServices {
                 throw new Error("User not found");
             } else {
                 const loginUser = await Login.findOne({ keyValue: keyValue });
-                console.log('==Login==', loginUser);
                 if (!loginUser) {
-                    const lastExpiry = 1;
+                    const lastExpiry = 5;
                     const nextExpiry = 0;
                     const newLogin = await Login.create({ keyValue, mobileOrPassword, password, token, lastExpiry, nextExpiry });
                 }
@@ -324,7 +306,6 @@ class UserServices {
             const qty = menu.qty;
 
             const newMenu = await Menu.create({ keyValue, categoriesType, item, price, qty });
-            console.log("==newMenu==", newMenu)
             return newMenu;
         }
         catch (err) {
@@ -357,7 +338,6 @@ class UserServices {
                 gst,
                 total
             });
-            console.log("==newInvoice==", newInvoice)
             return newInvoice;
         }
         catch (err) {
@@ -372,7 +352,6 @@ class UserServices {
                 menuList: menuList
             };
             const newKeepOrder = await KeepOrder.create(existingOrder);
-            console.log("==newInvoice==", newKeepOrder)
             return newKeepOrder;
         }
         catch (err) {
@@ -385,8 +364,6 @@ class UserServices {
             for (const value of existingInvoices) {
                 for (const table of value.table) {
                     if (tableId === table.tableId) {
-                        console.log('===tabelId true===', tableId, table.tableId);
-                        console.log('==value==', table);
                         return table;
                     }
                     return null;
@@ -419,7 +396,6 @@ class UserServices {
                 try {
                     fs.mkdirSync(documentsFolderPath);
                 } catch (err) {
-                    console.error('Error creating documents folder:', err);
                 }
             }
             const stream = doc.pipe(fs.createWriteStream(pdfPath));
@@ -458,7 +434,6 @@ class UserServices {
                 try {
                     fs.mkdirSync(documentsFolderPath);
                 } catch (err) {
-                    console.error('Error creating documents folder:', err);
                 }
             }
             const stream = doc.pipe(fs.createWriteStream(pdfPath));
@@ -562,11 +537,9 @@ class UserServices {
 
         const customerInformationTop = 200;
         let totalInvoice = 0;
-        console.log('== invoice == ', invoice);
 
         for (let i = 0; i < invoice.length; i++) {
             for (let u = 0; u < invoice[i].table.length; u++) {
-                console.log('== item == ', invoice[i].table[u]);
                 for (let y = 0; y < invoice[i].table[u].items.length; y++) {
                     let extraPrice = 0;
                     for(let p =0; p < invoice[i].table[u].note[y].extraNote.exPrice.length;p++ ){
@@ -656,7 +629,6 @@ class UserServices {
             const totalPrice = (((invoice.table.qty[i]) * (invoice.table.price[i]))+ (extraPrice));
             totalInvoicePrice += totalPrice;
 
-            console.log('====extra for pdf===', extraNote,extraPrice,totalInvoicePrice);
             const position = invoiceTableTop + (i + 1) * 30;
             this.extraNoteTableRow(
                 doc,
@@ -689,11 +661,9 @@ class UserServices {
         let gst;
         if (invoice.table.gst[0] > 0.00) {
             gst = (totalInvoicePrice * 9 / 100)
-            console.log("==invoice.table.gst==", invoice.table.gst);
         }
         else {
             gst = 0.00;
-            console.log("==gst==", gst);
         }
 
         this.generateTableRowforgst(
@@ -776,7 +746,6 @@ class UserServices {
                         position = 30; // Reset position for the new page
                     }
                     // x = x+1;
-                    console.log('==x==',x);
                     this.generateTableRowForGetInvoice(
                         doc,
                         position,
@@ -846,12 +815,10 @@ class UserServices {
 
         let gst;
         if (invoice[0].table[0].gst[0] > 0.00) {
-            gst = (totalInvoicePrice * 9 / 100)
-            console.log("==invoice.table.gst==", invoice[0].table[0].gst);
+            gst = (totalInvoicePrice * 9 / 100);
         }
         else {
             gst = 0.00;
-            console.log("==gst==", gst);
         }
 
         this.generateTableRowforgst(
@@ -1009,29 +976,134 @@ class UserServices {
     }
     //   newHtml pdf
 
-    static async htmlPdf(keyValue, invoice, baseUrl,startDate,endDate) {
+    // static async htmlPdf(keyValue, invoice, baseUrl,startDate,endDate) {
+
+    //     const data = {
+    //         jsonData: invoice
+    //     };
+    //  const filePath =  path.resolve(__dirname,'..','..','invoice.ejs');
+    // const htmlString=  fs.readFileSync(filePath).toString();
+    // let option = {
+    //     format: 'A4',
+    // }
+    // const ejsData = ejs.render(htmlString,data);
+    // const savePath =  path.resolve(__dirname,'..','..',);
+    // pdf.create(ejsData,option).toFile(`${savePath}/user.pdf`,(err,response)=>{
+    //     if(err){
+    //     }
+    // });
+
+       
+    // }
+    static async htmlPdf(keyValue, invoice, baseUrl, startDate, endDate) {
+        const currentDate = new Date();
+            const year = currentDate.getFullYear();
+            const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+            const day = currentDate.getDate().toString().padStart(2, '0');
+            const hours = currentDate.getHours().toString().padStart(2, '0');
+            const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+            const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+            // Construct the date and time strings
+            const currentDateStr = `${day}${month}${year}`;
+            const currentTimeStr = `${hours}${minutes}${seconds}`;
+            const documentsFolderPath = path.join(__dirname, '..', 'documents');
+            const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice[0].table[0].billNumber}`;
+            // const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
 
         const data = {
             jsonData: invoice
         };
-     const filePath =  path.resolve(__dirname,'..','..','invoice.ejs');
-     console.log('==filePath==', filePath);
-    const htmlString=  fs.readFileSync(filePath).toString();
-    let option = {
-        format: 'A4'
-    }
-    const ejsData = ejs.render(htmlString,data);
-    const savePath =  path.resolve(__dirname,'..','..',);
-    pdf.create(ejsData,option).toFile(`${savePath}/user.pdf`,(err,response)=>{
-        if(err){
-            console.log('err');
-        }
-        console.log('file Generated');
-    });
+        const filePath = path.resolve(__dirname, '..', '..', 'bill.ejs');
+        const htmlString = fs.readFileSync(filePath).toString();
+        const ejsData = ejs.render(htmlString, data);
+        const savePath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+    
+        // Puppeteer ka use karke PDF generate karna
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.setContent(ejsData);
+        await page.pdf({ path: savePath, format: 'A4',printBackground: true });
+        await browser.close();
+        const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
+        return pdfUrl;
 
-       
     }
+    // static async htmlPdf(keyValue, invoice, baseUrl, startDate, endDate) {
 
+    //     const data = {
+    //         jsonData: invoice
+    //     };
+    //     const savePath = path.resolve(__dirname, '..', '..', 'abc.pdf');
+    //     let pdfDocument = {
+    //         html: '',
+    //         data: data,
+    //         path: savePath,
+    //         type: "",
+    //     };
+    //      let options = {
+    //         format: "A4",
+    //     orientation: "portrait",
+    //     border: "10mm"
+    // }
+    //     const filePath = path.resolve(__dirname, '..', '..', 'bills.html');
+    //     const htmlString = fs.readFileSync(filePath, "utf8");
+    //     let document = {...pdfDocument};
+    //     document.html = htmlString;
+    //     document.data = data;
+    //     // document.path = path.resolve(__dirname, '..', '..', 'abc.pdf');
+    //     pdf.create(document, options)
+    //     .then(res => {
+    //     })
+    //     .catch(error => {
+    //     });
+        
+    //     // const ejsData = ejs.render(htmlString, data);
+    //     // const savePath = path.resolve(__dirname, '..', '..', 'user.pdf');
+    
+    //     // // Puppeteer ka use karke PDF generate karna
+    //     // const browser = await puppeteer.launch();
+    //     // const page = await browser.newPage();
+    //     // await page.setContent(ejsData);
+    //     // await page.pdf({ path: savePath, format: 'A4' });
+    //     // await browser.close();
+    
+    // }
+
+    static async customerInvoice(keyValue, invoice, baseUrl, startDate, endDate) {
+        const currentDate = new Date();
+            const year = currentDate.getFullYear();
+            const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+            const day = currentDate.getDate().toString().padStart(2, '0');
+            const hours = currentDate.getHours().toString().padStart(2, '0');
+            const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+            const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+            // Construct the date and time strings
+            const currentDateStr = `${day}${month}${year}`;
+            const currentTimeStr = `${hours}${minutes}${seconds}`;
+            const documentsFolderPath = path.join(__dirname, '..', 'documents');
+            const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}`;
+            // const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+
+        const data = {
+            jsonData: invoice
+        };
+        const filePath = path.resolve(__dirname, '..', '..', 'customerInvoice.ejs');
+        const htmlString = fs.readFileSync(filePath).toString();
+        const ejsData = ejs.render(htmlString, data);
+        const savePath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+    
+        // Puppeteer ka use karke PDF generate karna
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.setContent(ejsData);
+        await page.pdf({ path: savePath, format: 'A4',printBackground: true });
+        await browser.close();
+        const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
+        return pdfUrl;
+
+    }
 }
 
 
