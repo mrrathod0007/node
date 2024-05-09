@@ -1,8 +1,8 @@
-const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf,Profile } = require("../model/user_model");
+const { AdminUserModel, AdminBranchesModel, UserModel, UserAddTable, Login, Menu, Invoice, KeepOrder, AddPdf, Profile } = require("../model/user_model");
 const PDFDocument = require('pdfkit');
 const ejs = require('ejs');
-// const pdf = require('html-pdf');
-const pdf = require('pdf-creator-node');
+const pdf = require('html-pdf');
+// const pdf = require('pdf-creator-node');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
@@ -67,12 +67,12 @@ class UserServices {
             const branchUser = await AdminBranchesModel.findOne({
                 $or: [{ 'branches.userId': mobileOrPassword }, { mobile: mobileOrPassword }]
             });
-            if(adminUser){
+            if (adminUser) {
                 return adminUser;
-            }else{
+            } else {
                 return branchUser;
             }
-            
+
         } catch (error) {
             throw error;
         }
@@ -118,14 +118,14 @@ class UserServices {
                         });
 
                         // const decodedToken = jwt.verify(user.token, secretKey);
-                        if(decodedToken !== undefined){
+                        if (decodedToken !== undefined) {
                             const logintime = user.created;
                             const currentTime = Math.floor(Date.now() / 1000);
                             const remainingTime = decodedToken.exp - currentTime;
                             const remainingDays = Math.floor(remainingTime / (24 * 60 * 60));
                             const remainingHours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
                             const remainingMinutes = Math.floor((remainingTime % (60 * 60)) / 60);
-    
+
                             console.log(`Token expires in: ${remainingDays} days, ${remainingHours} hours, and ${remainingMinutes} minutes.`);
                             if (decodedToken.exp > currentTime) {
                                 return user.token;
@@ -141,12 +141,12 @@ class UserServices {
                                 } else {
                                     throw new Error("Session expired");
                                 }
-    
+
                             }
-                        }else{
+                        } else {
                             throw new Error("Session expired");
                         }
-                       
+
                     }
                 }
             } else {
@@ -375,7 +375,7 @@ class UserServices {
             throw err;
         }
     }
-    static async craetePDFforGetInvoice(keyValue, invoice, baseUrl,startDate,endDate) {
+    static async craetePDFforGetInvoice(keyValue, invoice, baseUrl, startDate, endDate) {
         return new Promise((resolve, reject) => {
             let doc = new PDFDocument({ size: "A4", margin: 50 });
             const currentDate = new Date();
@@ -400,7 +400,7 @@ class UserServices {
             }
             const stream = doc.pipe(fs.createWriteStream(pdfPath));
             this.generateHeader(doc);
-            this.customerInfoforGetInvoice(doc, invoice,startDate,endDate);
+            this.customerInfoforGetInvoice(doc, invoice, startDate, endDate);
             this.tableforGetInvoice(doc, invoice);
             this.generateFooter(doc);
 
@@ -451,13 +451,13 @@ class UserServices {
         });
     }
 
-    static async profileUpdate(keyValue,imageFolderPath, imageName,shopName, gstNumber,street,city,state,pinCode) {
+    static async profileUpdate(keyValue, imageFolderPath, imageName, shopName, gstNumber, street, city, state, pinCode) {
         try {
             if (!imageFolderPath || !shopName || !gstNumber || !street || !city || !state || !pinCode) {
                 throw new Error('All Field are required.');
             }
 
-            const updatedProfile = await Profile.create({ keyValue,imageFolderPath,imageName, shopName, gstNumber,street,city,state,pinCode });
+            const updatedProfile = await Profile.create({ keyValue, imageFolderPath, imageName, shopName, gstNumber, street, city, state, pinCode });
             return updatedProfile;
         }
         catch (err) {
@@ -527,7 +527,7 @@ class UserServices {
 
         this.generateHr(doc, 252);
     }
-    static async customerInfoforGetInvoice(doc, invoice,startDate,endDate) {
+    static async customerInfoforGetInvoice(doc, invoice, startDate, endDate) {
         doc
             .fillColor("#444444")
             .fontSize(20)
@@ -542,8 +542,8 @@ class UserServices {
             for (let u = 0; u < invoice[i].table.length; u++) {
                 for (let y = 0; y < invoice[i].table[u].items.length; y++) {
                     let extraPrice = 0;
-                    for(let p =0; p < invoice[i].table[u].note[y].extraNote.exPrice.length;p++ ){
-                        extraPrice +=invoice[i].table[u].note[y].extraNote.exPrice[p];
+                    for (let p = 0; p < invoice[i].table[u].note[y].extraNote.exPrice.length; p++) {
+                        extraPrice += invoice[i].table[u].note[y].extraNote.exPrice[p];
                     }
                     const totalPrice = (((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y])) + extraPrice);
                     totalInvoice += totalPrice;
@@ -608,25 +608,25 @@ class UserServices {
         this.generateHr(doc, invoiceTableTop + 20);
         doc.font("Helvetica");
         let totalInvoicePrice = 0;
-        
-        
+
+
         for (i = 0; i < invoice.table.items.length; i++) {
             let extraPrice = 0;
             let extraNote;
-            for( u = 0; u <invoice.table.note[i].extraNote.note.length; u++){
-                if(extraNote !== undefined){
-                    extraNote = `${extraNote},`+`${invoice.table.note[i].extraNote.note[u]}`;
-                }else{
+            for (u = 0; u < invoice.table.note[i].extraNote.note.length; u++) {
+                if (extraNote !== undefined) {
+                    extraNote = `${extraNote},` + `${invoice.table.note[i].extraNote.note[u]}`;
+                } else {
                     extraNote = invoice.table.note[i].extraNote.note[u];
                 }
                 extraPrice += invoice.table.note[i].extraNote.exPrice[u];
             }
-            
+
             const item = (i + 1);
             const description = invoice.table.items[i];
             const price = invoice.table.price[i];
             const qty = invoice.table.qty[i];
-            const totalPrice = (((invoice.table.qty[i]) * (invoice.table.price[i]))+ (extraPrice));
+            const totalPrice = (((invoice.table.qty[i]) * (invoice.table.price[i])) + (extraPrice));
             totalInvoicePrice += totalPrice;
 
             const position = invoiceTableTop + (i + 1) * 30;
@@ -634,7 +634,7 @@ class UserServices {
                 doc,
                 position,
                 item,
-                `${description  }`+`( Extra : ${extraNote})`,
+                `${description}` + `( Extra : ${extraNote})`,
                 price,
                 qty,
                 extraPrice,
@@ -724,20 +724,20 @@ class UserServices {
         this.generateHr(doc, invoiceTableTop + 20);
         doc.font("Helvetica");
         let totalInvoicePrice = 0;
-        for ( i = 0; i < invoice.length; i++) {
-            for ( u = 0; u < invoice[i].table.length; u++) {
-                for ( y = 0; y < invoice[i].table[u].items.length; y++) {
-                let extraPrice = 0;
-                for(p =0; p < invoice[i].table[u].note[y].extraNote.exPrice.length;p++ ){
-                    extraPrice +=invoice[i].table[u].note[y].extraNote.exPrice[p];
-                }
+        for (i = 0; i < invoice.length; i++) {
+            for (u = 0; u < invoice[i].table.length; u++) {
+                for (y = 0; y < invoice[i].table[u].items.length; y++) {
+                    let extraPrice = 0;
+                    for (p = 0; p < invoice[i].table[u].note[y].extraNote.exPrice.length; p++) {
+                        extraPrice += invoice[i].table[u].note[y].extraNote.exPrice[p];
+                    }
                     const item = (x + 1);
                     const date = invoice[i].date;
                     const tableNo = invoice[i].table[u].tableId;
                     const description = invoice[i].table[u].items[y];
                     const price = invoice[i].table[u].price[y];
                     const qty = invoice[i].table[u].qty[y];
-                    const totalPrice = ((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y]) + extraPrice );
+                    const totalPrice = ((invoice[i].table[u].qty[y]) * (invoice[i].table[u].price[y]) + extraPrice);
                     totalInvoicePrice += totalPrice;
                     // const position = invoiceTableTop + ( x + 1) * 30;
                     if (position > doc.page.height - 50) {
@@ -759,13 +759,13 @@ class UserServices {
                         totalPrice
                         // formatCurrency(item.amount)
                     );
-        
+
                     this.generateHr(doc, position + 20);
                     position += 30; // Move to the next position
-                x++;
+                    x++;
                 }
-               
-                
+
+
             }
         }
 
@@ -835,7 +835,7 @@ class UserServices {
             doc.addPage();
             sgstPosition = 30;
         }
-        
+
         this.generateTableRowforgst(
             doc,
             sgstPosition,
@@ -946,8 +946,8 @@ class UserServices {
             .fontSize(10)
             .text(item, 30, y)
             .text(date, 80, y)
-            .text(tableNo, 130, y,{width: 50,align: "center" })
-            .text(description, 180, y,{width: 90,align: "center" })
+            .text(tableNo, 130, y, { width: 50, align: "center" })
+            .text(description, 180, y, { width: 90, align: "center" })
             .text(unitCost, 270, y, { width: 50, align: "center" })
             .text(quantity, 320, y, { width: 50, align: "center" })
             .text(extraCost, 370, y, { width: 90, align: "center" })
@@ -976,59 +976,59 @@ class UserServices {
     }
     //   newHtml pdf
 
-    // static async htmlPdf(keyValue, invoice, baseUrl,startDate,endDate) {
-
-    //     const data = {
-    //         jsonData: invoice
-    //     };
-    //  const filePath =  path.resolve(__dirname,'..','..','invoice.ejs');
-    // const htmlString=  fs.readFileSync(filePath).toString();
-    // let option = {
-    //     format: 'A4',
-    // }
-    // const ejsData = ejs.render(htmlString,data);
-    // const savePath =  path.resolve(__dirname,'..','..',);
-    // pdf.create(ejsData,option).toFile(`${savePath}/user.pdf`,(err,response)=>{
-    //     if(err){
-    //     }
-    // });
-
-       
-    // }
     static async htmlPdf(keyValue, invoice, baseUrl, startDate, endDate) {
-        const currentDate = new Date();
-            const year = currentDate.getFullYear();
-            const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
-            const day = currentDate.getDate().toString().padStart(2, '0');
-            const hours = currentDate.getHours().toString().padStart(2, '0');
-            const minutes = currentDate.getMinutes().toString().padStart(2, '0');
-            const seconds = currentDate.getSeconds().toString().padStart(2, '0');
-
-            // Construct the date and time strings
-            const currentDateStr = `${day}${month}${year}`;
-            const currentTimeStr = `${hours}${minutes}${seconds}`;
-            const documentsFolderPath = path.join(__dirname, '..', 'documents');
-            const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice[0].table[0].billNumber}`;
-            // const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
-
         const data = {
             jsonData: invoice
         };
         const filePath = path.resolve(__dirname, '..', '..', 'bill.ejs');
         const htmlString = fs.readFileSync(filePath).toString();
+        let option = {
+            format: 'A4',
+            printBackground: true
+        }
         const ejsData = ejs.render(htmlString, data);
-        const savePath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
-    
-        // Puppeteer ka use karke PDF generate karna
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.setContent(ejsData);
-        await page.pdf({ path: savePath, format: 'A4',printBackground: true });
-        await browser.close();
-        const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
-        return pdfUrl;
+        const savePath = path.resolve(__dirname, '..', '..',);
+        pdf.create(ejsData, option).toFile(`${savePath}/user.pdf`, (err, response) => {
+            if (err) {
+            }
+        });
+
 
     }
+    // static async htmlPdf(keyValue, invoice, baseUrl, startDate, endDate) {
+    //     const currentDate = new Date();
+    //         const year = currentDate.getFullYear();
+    //         const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+    //         const day = currentDate.getDate().toString().padStart(2, '0');
+    //         const hours = currentDate.getHours().toString().padStart(2, '0');
+    //         const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+    //         const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+    //         // Construct the date and time strings
+    //         const currentDateStr = `${day}${month}${year}`;
+    //         const currentTimeStr = `${hours}${minutes}${seconds}`;
+    //         const documentsFolderPath = path.join(__dirname, '..', 'documents');
+    //         const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice[0].table[0].billNumber}`;
+    //         // const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+
+    //     const data = {
+    //         jsonData: invoice
+    //     };
+    //     const filePath = path.resolve(__dirname, '..', '..', 'bill.ejs');
+    //     const htmlString = fs.readFileSync(filePath).toString();
+    //     const ejsData = ejs.render(htmlString, data);
+    //     const savePath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+
+    //     // Puppeteer ka use karke PDF generate karna
+    //     const browser = await puppeteer.launch();
+    //     const page = await browser.newPage();
+    //     await page.setContent(ejsData);
+    //     await page.pdf({ path: savePath, format: 'A4',printBackground: true });
+    //     await browser.close();
+    //     const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
+    //     return pdfUrl;
+
+    // }
     // static async htmlPdf(keyValue, invoice, baseUrl, startDate, endDate) {
 
     //     const data = {
@@ -1057,34 +1057,34 @@ class UserServices {
     //     })
     //     .catch(error => {
     //     });
-        
+
     //     // const ejsData = ejs.render(htmlString, data);
     //     // const savePath = path.resolve(__dirname, '..', '..', 'user.pdf');
-    
+
     //     // // Puppeteer ka use karke PDF generate karna
     //     // const browser = await puppeteer.launch();
     //     // const page = await browser.newPage();
     //     // await page.setContent(ejsData);
     //     // await page.pdf({ path: savePath, format: 'A4' });
     //     // await browser.close();
-    
+
     // }
 
     static async customerInvoice(keyValue, invoice, baseUrl, startDate, endDate) {
         const currentDate = new Date();
-            const year = currentDate.getFullYear();
-            const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
-            const day = currentDate.getDate().toString().padStart(2, '0');
-            const hours = currentDate.getHours().toString().padStart(2, '0');
-            const minutes = currentDate.getMinutes().toString().padStart(2, '0');
-            const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+        const year = currentDate.getFullYear();
+        const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+        const day = currentDate.getDate().toString().padStart(2, '0');
+        const hours = currentDate.getHours().toString().padStart(2, '0');
+        const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+        const seconds = currentDate.getSeconds().toString().padStart(2, '0');
 
-            // Construct the date and time strings
-            const currentDateStr = `${day}${month}${year}`;
-            const currentTimeStr = `${hours}${minutes}${seconds}`;
-            const documentsFolderPath = path.join(__dirname, '..', 'documents');
-            const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}`;
-            // const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+        // Construct the date and time strings
+        const currentDateStr = `${day}${month}${year}`;
+        const currentTimeStr = `${hours}${minutes}${seconds}`;
+        const documentsFolderPath = path.join(__dirname, '..', 'documents');
+        const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice.table.billNumber}`;
+        // const pdfPath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
 
         const data = {
             jsonData: invoice
@@ -1093,12 +1093,12 @@ class UserServices {
         const htmlString = fs.readFileSync(filePath).toString();
         const ejsData = ejs.render(htmlString, data);
         const savePath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
-    
+
         // Puppeteer ka use karke PDF generate karna
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
         await page.setContent(ejsData);
-        await page.pdf({ path: savePath, format: 'A4',printBackground: true });
+        await page.pdf({ path: savePath, format: 'A4', printBackground: true });
         await browser.close();
         const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
         return pdfUrl;
