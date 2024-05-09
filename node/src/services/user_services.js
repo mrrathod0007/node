@@ -1004,10 +1004,12 @@ class UserServices {
         pdf.create(ejsData, option).toFile(`${savePath}`, (err, response) => {
             if (err) {
             }else{
-                const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
-        return pdfUrl;
+               
             }
+            
         });
+        const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
+            return pdfUrl;
 
 
     }
