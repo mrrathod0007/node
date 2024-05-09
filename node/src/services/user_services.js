@@ -977,6 +977,19 @@ class UserServices {
     //   newHtml pdf
 
     static async htmlPdf(keyValue, invoice, baseUrl, startDate, endDate) {
+        const currentDate = new Date();
+                const year = currentDate.getFullYear();
+                const month = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based, so add 1
+                const day = currentDate.getDate().toString().padStart(2, '0');
+                const hours = currentDate.getHours().toString().padStart(2, '0');
+                const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+                const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+    
+                // Construct the date and time strings
+                const currentDateStr = `${day}${month}${year}`;
+                const currentTimeStr = `${hours}${minutes}${seconds}`;
+                const documentsFolderPath = path.join(__dirname, '..', 'documents');
+                const invoiceDateandTime = `${currentDateStr}${currentTimeStr}-${invoice[0].table[0].billNumber}`;
         const data = {
             jsonData: invoice
         };
@@ -987,9 +1000,12 @@ class UserServices {
             printBackground: true
         }
         const ejsData = ejs.render(htmlString, data);
-        const savePath = path.resolve(__dirname, '..', '..',);
-        pdf.create(ejsData, option).toFile(`${savePath}/user.pdf`, (err, response) => {
+        const savePath = path.join(documentsFolderPath, `${invoiceDateandTime}.pdf`);
+        pdf.create(ejsData, option).toFile(`${savePath}`, (err, response) => {
             if (err) {
+            }else{
+                const pdfUrl = `http://${baseUrl}/documents/${invoiceDateandTime}.pdf`;
+        return pdfUrl;
             }
         });
 
